@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: node-service-template
-  title: Node.js Microservice
+  title: Node.js Microservice (defined in another repo)
   description: Create a production-ready Node.js microservice with Express, TypeScript, and best practices
   tags:
     - application
