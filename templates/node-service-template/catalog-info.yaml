@@ -1,0 +1,107 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: node-service-template
+  title: Node.js Service Template
+  description: A production-ready Node.js microservice template with best practices, monitoring, and Backstage integration
+  annotations:
+    # TechDocs configuration
+    backstage.io/techdocs-ref: dir:.
+
+    # Source code location
+    github.com/project-slug: ikto-cma-cgm/node-service-template
+
+    # CI/CD integration
+    github.com/workflows: ci.yml
+
+    # Kubernetes integration (if deployed)
+    kubernetes.io/deployment: node-service-template
+
+    # Monitoring and observability
+    grafana/dashboard-selector: node-service-template
+    prometheus.io/rule: node-service-template
+
+    # PagerDuty integration (optional)
+    pagerduty.com/integration-key: YOUR_INTEGRATION_KEY
+
+    # Sentry integration (optional)
+    sentry.io/project-slug: node-service-template
+
+  tags:
+    - nodejs
+    - express
+    - microservice
+    - template
+    - rest-api
+    - production-ready
+
+  links:
+    - url: http://localhost:3000
+      title: Local Development
+      icon: dashboard
+    - url: http://localhost:3000/health
+      title: Health Check
+      icon: health
+    - url: http://localhost:3000/api-docs
+      title: API Documentation
+      icon: docs
+    - url: https://github.com/ikto-cma-cgm/node-service-template
+      title: Source Code
+      icon: github
+    - url: https://grafana.example.com/d/node-service-template
+      title: Grafana Dashboard
+      icon: grafana
+    - url: https://prometheus.example.com
+      title: Prometheus Metrics
+      icon: prometheus
+
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: platform-services
+
+  # APIs provided by this service
+  providesApis:
+    - node-service-api
+
+  # Resources this service depends on
+  dependsOn: []
+
+  # Service consumption
+  consumesApis: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: node-service-api
+  title: Node Service REST API
+  description: RESTful API for the Node.js service template
+  tags:
+    - rest
+    - openapi
+    - api
+  links:
+    - url: http://localhost:3000/api-docs
+      title: Swagger UI
+      icon: docs
+
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: platform-services
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Node Service Template API
+      version: 1.0.0
+      description: RESTful API for the Node.js service template
+    paths:
+      /health:
+        get:
+          summary: Health check endpoint
+          responses:
+            '200':
+              description: Service is healthy

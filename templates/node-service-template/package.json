@@ -1,0 +1,68 @@
+{
+  "name": "node-service-template",
+  "version": "1.0.0",
+  "description": "A production-ready Node.js service template with best practices and Backstage integration",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build": "echo 'No build step required for Node.js'",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.js\" \"*.{json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"*.{json,md,yml,yaml}\"",
+    "prepare": "husky install",
+    "validate": "npm run format:check && npm run lint",
+    "docker:build": "docker build -t node-service-template .",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "api",
+    "template",
+    "backstage",
+    "microservice"
+  ],
+  "author": "Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "express-rate-limit": "^7.1.5",
+    "swagger-ui-express": "^5.0.0",
+    "yamljs": "^0.3.0",
+    "express-async-errors": "^3.1.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "eslint": "^8.55.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "prettier": "^3.1.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

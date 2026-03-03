@@ -1,0 +1,114 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  title: ${{ values.name | title }}
+  description: ${{ values.description }}
+  annotations:
+    # TechDocs configuration
+    backstage.io/techdocs-ref: dir:.
+
+    # Source code location
+    github.com/project-slug: ${{ values.destination.owner }}/${{ values.destination.repo }}
+
+    # CI/CD integration
+    {%- if values.enableCICD %}
+    github.com/workflows: ci.yml
+    {%- endif %}
+
+    # Kubernetes integration (if deployed to Kubernetes)
+    {%- if values.deploymentTarget == 'kubernetes' %}
+    kubernetes.io/deployment: ${{ values.name }}
+    {%- endif %}
+
+    # Monitoring and observability
+    {%- if values.enableGrafana %}
+    grafana/dashboard-selector: ${{ values.name }}
+    {%- endif %}
+    {%- if values.enablePrometheus %}
+    prometheus.io/rule: ${{ values.name }}
+    {%- endif %}
+
+    # Sentry integration (optional)
+    {%- if values.enableSentry %}
+    sentry.io/project-slug: ${{ values.name }}
+    {%- endif %}
+
+  tags:
+    - nodejs
+    - express
+    - microservice
+    - rest-api
+    - ${{ values.name }}
+
+  links:
+    - url: http://localhost:${{ values.port }}
+      title: Local Development
+      icon: dashboard
+    - url: http://localhost:${{ values.port }}/health
+      title: Health Check
+      icon: health
+    - url: http://localhost:${{ values.port }}/api-docs
+      title: API Documentation
+      icon: docs
+    - url: https://github.com/${{ values.destination.owner }}/${{ values.destination.repo }}
+      title: Source Code
+      icon: github
+    {%- if values.enableGrafana %}
+    - url: https://grafana.example.com/d/${{ values.name }}
+      title: Grafana Dashboard
+      icon: grafana
+    {%- endif %}
+    {%- if values.enablePrometheus %}
+    - url: https://prometheus.example.com
+      title: Prometheus Metrics
+      icon: prometheus
+    {%- endif %}
+
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  {%- if values.system %}
+  system: ${{ values.system }}
+  {%- else %}
+  system: platform-services
+  {%- endif %}
+
+  # APIs provided by this service
+  providesApis:
+    - ${{ values.name }}-api
+
+  # Resources this service depends on
+  dependsOn: []
+
+  # Service consumption
+  consumesApis: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{ values.name }}-api
+  title: ${{ values.name | title }} REST API
+  description: RESTful API for ${{ values.description }}
+  tags:
+    - rest
+    - openapi
+    - api
+  links:
+    - url: http://localhost:${{ values.port }}/api-docs
+      title: Swagger UI
+      icon: docs
+
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  {%- if values.system %}
+  system: ${{ values.system }}
+  {%- else %}
+  system: platform-services
+  {%- endif %}
+  definition:
+    $text: ./openapi.yaml

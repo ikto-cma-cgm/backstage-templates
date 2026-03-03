@@ -1,0 +1,472 @@
+openapi: 3.0.3
+info:
+  title: Node Service Template API
+  description: |
+    A production-ready Node.js microservice template with RESTful API endpoints.
+
+    This API provides:
+    - CRUD operations for example resources
+    - Health check endpoints for monitoring
+    - Rate limiting and security features
+    - Comprehensive error handling
+
+    **Base URL**: `http://localhost:3000/api/v1`
+  version: 1.0.0
+  contact:
+    name: Platform Team
+    email: platform-team@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api-dev.example.com/api/v1
+    description: Development environment
+  - url: https://api-staging.example.com/api/v1
+    description: Staging environment
+  - url: https://api.example.com/api/v1
+    description: Production environment
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Examples
+    description: Example CRUD operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Basic health check
+      description: Returns the health status of the service
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                success: true
+                status: healthy
+                service: node-service-template
+                version: 1.0.0
+                timestamp: '2024-01-15T10:30:00.000Z'
+                uptime: 3600.5
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness probe
+      description: Kubernetes readiness probe - checks if service is ready to accept traffic
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness probe
+      description: Kubernetes liveness probe - checks if service is alive
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+
+  /:
+    get:
+      tags:
+        - Examples
+      summary: API root
+      description: Returns basic API information and available endpoints
+      operationId: getApiRoot
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiRootResponse'
+
+  /examples:
+    get:
+      tags:
+        - Examples
+      summary: Get all examples
+      description: Retrieve a list of all example resources
+      operationId: getExamples
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of examples retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamplesListResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Examples
+      summary: Create new example
+      description: Create a new example resource
+      operationId: createExample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExampleRequest'
+      responses:
+        '201':
+          description: Example created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /examples/{id}:
+    get:
+      tags:
+        - Examples
+      summary: Get example by ID
+      description: Retrieve a specific example by its ID
+      operationId: getExampleById
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Example retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Examples
+      summary: Update example
+      description: Update an existing example by ID
+      operationId: updateExample
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExampleRequest'
+      responses:
+        '200':
+          description: Example updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Examples
+      summary: Delete example
+      description: Delete an example by ID
+      operationId: deleteExample
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Example deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      description: Resource ID
+      schema:
+        type: string
+        example: '12345'
+
+    PageParam:
+      name: page
+      in: query
+      description: Page number
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: node-service-template
+        version:
+          type: string
+          example: 1.0.0
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          description: Service uptime in seconds
+
+    ReadinessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+          enum: [ready, not ready]
+        timestamp:
+          type: string
+          format: date-time
+
+    LivenessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+          example: alive
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiRootResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        version:
+          type: string
+        endpoints:
+          type: object
+          additionalProperties:
+            type: string
+
+    Example:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Example name
+        description:
+          type: string
+          description: Example description
+        status:
+          type: string
+          enum: [active, inactive]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateExampleRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: My Example
+        description:
+          type: string
+          maxLength: 200
+          example: This is an example resource
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+
+    UpdateExampleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        description:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          enum: [active, inactive]
+
+    ExampleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Example'
+
+    ExamplesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        count:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Example'
+
+    DeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        stack:
+          type: string
+          description: Error stack trace (development only)
+
+  responses:
+    BadRequestError:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Validation failed
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Resource not found
+
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Too many requests from this IP, please try again later.
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Internal server error
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication (implement if needed)
+
+# Uncomment to apply authentication globally
+# security:
+#   - bearerAuth: []

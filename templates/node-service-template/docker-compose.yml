@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Node.js application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: node-service-template
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3000
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
+      - SERVICE_NAME=${SERVICE_NAME:-node-service-template}
+      - SERVICE_VERSION=${SERVICE_VERSION:-1.0.0}
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - /app/node_modules
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Example: PostgreSQL database (uncomment if needed)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: node-service-db
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_USER=${DB_USER:-postgres}
+  #     - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+  #     - POSTGRES_DB=${DB_NAME:-nodeservice}
+  #   ports:
+  #     - "${DB_PORT:-5432}:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Example: Redis cache (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: node-service-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${REDIS_PORT:-6379}:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

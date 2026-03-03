@@ -1,0 +1,391 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: node-service-template
+  title: Node.js Microservice
+  description: Create a production-ready Node.js microservice with Express, TypeScript, and best practices
+  tags:
+    - application
+    - nodejs
+    - microservice
+    - express
+    - typescript
+    - backend
+spec:
+  owner: platform-team
+  type: service
+
+  # These parameters are used to generate the project
+  parameters:
+    - title: Service Information
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Service Name
+          type: string
+          description: Unique name for the service (lowercase, hyphens allowed)
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          maxLength: 50
+          ui:autofocus: true
+          ui:help: 'Use lowercase letters, numbers, and hyphens. Must start with a letter (e.g., user-management-service)'
+
+        description:
+          title: Description
+          type: string
+          description: A brief description of what this service does
+          maxLength: 200
+          ui:help: 'Provide a clear, concise description (e.g., "Manages user authentication and authorization")'
+
+        owner:
+          title: Owner
+          type: string
+          description: Team or user who owns this service
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+              - kind: User
+          ui:help: 'Select the team or individual responsible for this service'
+
+    - title: Repository Configuration
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - ikto-cma-cgm
+            allowedRepos: []
+          description: GitHub repository for the new service
+
+        defaultBranch:
+          title: Default Branch
+          type: string
+          description: Default branch name for the repository
+          default: main
+          enum:
+            - main
+            - master
+            - develop
+
+    - title: Service Configuration
+      properties:
+        system:
+          title: System
+          type: string
+          description: Which system does this service belong to?
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: System
+          ui:help: 'Select the system this service is part of (optional)'
+
+        port:
+          title: Service Port
+          type: number
+          description: Port number for the service
+          default: 3000
+          minimum: 1024
+          maximum: 65535
+
+        nodeVersion:
+          title: Node.js Version
+          type: string
+          description: Node.js runtime version
+          default: '18.x'
+          enum:
+            - '18.x'
+            - '20.x'
+            - '22.x'
+
+        includeDatabase:
+          title: Include Database Configuration
+          type: boolean
+          description: Add database configuration templates (PostgreSQL/MongoDB)
+          default: false
+
+        includeRedis:
+          title: Include Redis Configuration
+          type: boolean
+          description: Add Redis caching configuration
+          default: false
+
+    - title: CI/CD and Deployment
+      properties:
+        enableCICD:
+          title: Enable CI/CD Pipeline
+          type: boolean
+          description: Include GitHub Actions workflows for CI/CD
+          default: true
+
+        enableDocker:
+          title: Enable Docker Support
+          type: boolean
+          description: Include Dockerfile and docker-compose configuration
+          default: true
+
+        deploymentTarget:
+          title: Deployment Target
+          type: string
+          description: Target platform for deployment
+          default: kubernetes
+          enum:
+            - kubernetes
+            - docker-swarm
+            - cloud-run
+            - ecs
+            - none
+          enumNames:
+            - Kubernetes
+            - Docker Swarm
+            - Google Cloud Run
+            - AWS ECS
+            - None (Manual deployment)
+
+        ciProvider:
+          title: CI/CD Provider
+          type: string
+          description: Select your CI/CD platform
+          default: github-actions
+          enum:
+            - github-actions
+            - jenkins
+            - gitlab-ci
+
+    - title: Monitoring and Observability
+      properties:
+        enablePrometheus:
+          title: Enable Prometheus Metrics
+          type: boolean
+          description: Add Prometheus metrics endpoint
+          default: true
+
+        enableGrafana:
+          title: Configure Grafana Dashboard
+          type: boolean
+          description: Include Grafana dashboard configuration
+          default: true
+
+        enableSentry:
+          title: Enable Sentry Error Tracking
+          type: boolean
+          description: Add Sentry integration for error tracking
+          default: false
+
+        logLevel:
+          title: Default Log Level
+          type: string
+          description: Default logging level for the service
+          default: info
+          enum:
+            - debug
+            - info
+            - warn
+            - error
+
+  # Steps to execute when the template is used
+  steps:
+    # 1. Fetch the base template
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutTemplating:
+          - '**/*.png'
+          - '**/*.jpg'
+          - '**/*.jpeg'
+          - '**/*.gif'
+          - '**/*.svg'
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          port: ${{ parameters.port }}
+          nodeVersion: ${{ parameters.nodeVersion }}
+          defaultBranch: ${{ parameters.defaultBranch }}
+          repoUrl: ${{ parameters.repoUrl }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+          # Feature flags
+          includeDatabase: ${{ parameters.includeDatabase }}
+          includeRedis: ${{ parameters.includeRedis }}
+          enableCICD: ${{ parameters.enableCICD }}
+          runTests: true
+          runLint: true
+          enableSecurityScan: true
+          enableDependencyCheck: true
+          enableSonarQube: true
+          enableDocker: ${{ parameters.enableDocker }}
+          deploymentTarget: ${{ parameters.deploymentTarget }}
+          enablePrometheus: ${{ parameters.enablePrometheus }}
+          enableCodeCoverage: true
+          enableGrafana: ${{ parameters.enableGrafana }}
+          enableSentry: ${{ parameters.enableSentry }}
+          logLevel: ${{ parameters.logLevel }}
+
+          # Computed values
+          timestamp: ${{ '' | now }}
+          year: ${{ '' | now }}
+
+
+
+
+
+    # 2. Fetch CI/CD Template (Composition)
+    - id: fetch-cicd
+      name: Fetch CI/CD Pipeline
+      action: fetch:template
+      if: ${{ parameters.enableCICD }}
+      input:
+        # Fetch from the integration template using absolute Git URL via Composition Pattern
+        url: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/integration/cicd-service-template/skeleton/nodejs/${{ parameters.ciProvider }}
+        values:
+          appName: ${{ parameters.name }}
+          serviceName: ${{ parameters.name }}
+          nodeVersion: ${{ parameters.nodeVersion }}
+          deploymentTarget: ${{ parameters.deploymentTarget }}
+          defaultBranch: ${{ parameters.defaultBranch }}
+          # Pass through feature flags if needed by the dedicated template
+          enableCICD: ${{ parameters.enableCICD }}
+          runLint: true
+          runTests: true
+          enableDocker: ${{ parameters.enableDocker }}
+          enableSecurityScan: ${{ parameters.enableSentry }}
+          
+          # Additional variables required by Jenkins/GitLab skeletons
+          requiresDatabase: ${{ parameters.includeDatabase }}
+          requiresRedis: ${{ parameters.includeRedis }}
+          enableCodeCoverage: true
+          enableSonarQube: true
+          enableAutoDeployment: ${{ parameters.deploymentTarget != 'none' }}
+          kubernetesNamespace: default
+          ecsCluster: default-cluster
+
+    # 3. Create the GitHub repository
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: ${{ parameters.defaultBranch }}
+        repoVisibility: private
+        deleteBranchOnMerge: true
+        gitAuthorName: ${{ user.entity.metadata.name }}
+        gitAuthorEmail: ${{ user.entity.spec.profile.email }}
+        topics:
+          - nodejs
+          - microservice
+          - backstage
+          - express
+          - ${{ parameters.name }}
+
+    # 3. Register the component in Backstage catalog
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl | replace('/tree/', '/blob/') }}
+        catalogInfoPath: /catalog-info.yaml
+
+    # 4. Create initial labels in GitHub
+    # Note: The github:issues:label:create action requires additional setup
+    # See: https://github.com/backstage/community-plugins/tree/main/workspaces/github-actions
+    # - id: create-labels
+    #   name: Create GitHub Labels
+    #   action: github:issues:label:create
+    #   input:
+    #     repoUrl: ${{ parameters.repoUrl }}
+    #     labels:
+    #       - name: bug
+    #         color: d73a4a
+    #         description: Something isn't working
+    #       - name: enhancement
+    #         color: a2eeef
+    #         description: New feature or request
+    #       - name: documentation
+    #         color: 0075ca
+    #         description: Documentation improvements
+    #       - name: security
+    #         color: ee0701
+    #         description: Security-related issues
+    #       - name: dependencies
+    #         color: 0366d6
+    #         description: Dependencies updates
+    #       - name: good-first-issue
+    #         color: 7057ff
+    #         description: Good for newcomers
+
+  # Output to show the user
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+        icon: github
+
+      - title: Open in Backstage Catalog
+        url: ${{ steps.register.output.catalogInfoUrl }}
+        icon: catalog
+
+      - title: Clone Repository
+        url: ${{ steps.publish.output.cloneUrl }}
+        icon: download
+
+      - title: View CI/CD Pipeline
+        url: ${{ steps.publish.output.remoteUrl }}/actions
+        icon: build
+
+    text:
+      - title: Next Steps
+        content: |
+          Your new Node.js microservice **${{ parameters.name }}** has been created successfully!
+
+          ## Quick Start
+
+          1. **Clone the repository:**
+             ```bash
+             git clone ${{ steps.publish.output.cloneUrl }}
+             cd ${{ parameters.name }}
+             ```
+
+          2. **Install dependencies:**
+             ```bash
+             npm install
+             ```
+
+          3. **Configure environment:**
+             ```bash
+             cp .env.example .env
+             # Edit .env with your configuration
+             ```
+
+          4. **Start development server:**
+             ```bash
+             npm run dev
+             ```
+
+          5. **Access your service:**
+             - API: http://localhost:${{ parameters.port }}/api/v1
+             - Health: http://localhost:${{ parameters.port }}/health
+             - API Docs: http://localhost:${{ parameters.port }}/api-docs
+
+          ## Resources
+
+          - [Repository](${{ steps.publish.output.remoteUrl }})
+          - [Backstage Catalog](${{ steps.register.output.catalogInfoUrl }})
+          - [CI/CD Pipeline](${{ steps.publish.output.remoteUrl }}/actions)
+          - [Template Documentation](https://github.com/ikto-cma-cgm/node-service-template/blob/main/TEMPLATE_USAGE.md)
+
+          ## Support
+
+          For questions or issues, contact the Platform Team or check the template documentation.

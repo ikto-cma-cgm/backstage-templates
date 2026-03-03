@@ -1,0 +1,51 @@
+# Backstage Template Ignore File
+# Files and directories listed here will not be included when the template is scaffolded
+
+# Template files (should not be in the generated service)
+template.yaml
+TEMPLATE_USAGE.md
+.backstage-template-ignore
+
+# Git directory (will be created fresh)
+.git/
+.gitignore
+
+# Documentation files that are template-specific
+BACKSTAGE_INTEGRATION.md
+PROJECT_OVERVIEW.md
+SETUP_SUMMARY.md
+QUICK_REFERENCE.md
+INDEX.md
+
+# Node modules (will be installed by user)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Environment files (user will create from example)
+.env
+.env.local
+.env.production
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

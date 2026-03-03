@@ -1,0 +1,124 @@
+# Example Backstage Configuration for Node.js Service Template
+# Add this configuration to your app-config.local.yaml or app-config.production.yaml
+
+# ============================================================================
+# CATALOG CONFIGURATION
+# ============================================================================
+catalog:
+  locations:
+    # Node.js Service Template - Software Template for creating new microservices
+    - type: url
+      target: https://github.com/ikto-cma-cgm/node-service-template/blob/main/template.yaml
+      rules:
+        - allow: [Template]
+
+# ============================================================================
+# GITHUB INTEGRATION (Required for template to work)
+# ============================================================================
+integrations:
+  github:
+    - host: github.com
+      # Set GITHUB_TOKEN environment variable with a Personal Access Token
+      # Required scopes: repo, workflow, write:packages, delete_repo
+      token: ${GITHUB_TOKEN}
+
+# ============================================================================
+# SCAFFOLDER CONFIGURATION
+# ============================================================================
+scaffolder:
+  # GitHub configuration for repository creation
+  github:
+    token: ${GITHUB_TOKEN}
+    visibility: internal # Options: public, private, internal
+
+  # Default author for commits
+  defaultAuthor:
+    name: Backstage Scaffolder
+    email: backstage@ikto-cma-cgm.com
+
+  # Default commit message
+  defaultCommitMessage: 'Initial commit from Backstage Software Template'
+
+# ============================================================================
+# TECHDOCS CONFIGURATION (For template documentation)
+# ============================================================================
+techdocs:
+  builder: 'local' # Options: local, external
+  generator:
+    runIn: 'local' # Options: local, docker
+  publisher:
+    type: 'local' # Options: local, googleGcs, awsS3, azureBlobStorage
+
+# ============================================================================
+# EXAMPLE: Environment-specific overrides
+# ============================================================================
+
+# Development configuration (app-config.local.yaml)
+# catalog:
+#   locations:
+#     - type: url
+#       target: http://localhost:3000/template.yaml  # For local template testing
+#       rules:
+#         - allow: [Template]
+
+# Production configuration (app-config.production.yaml)
+# scaffolder:
+#   github:
+#     token: ${GITHUB_PRODUCTION_TOKEN}
+#     visibility: private
+#   defaultAuthor:
+#     name: Backstage Production
+#     email: noreply@ikto-cma-cgm.com
+
+# ============================================================================
+# ADDITIONAL TEMPLATE CONFIGURATIONS
+# ============================================================================
+
+# If you have multiple templates, you can organize them:
+# catalog:
+#   locations:
+#     # Templates
+#     - type: url
+#       target: https://github.com/ikto-cma-cgm/node-service-template/blob/main/template.yaml
+#       rules:
+#         - allow: [Template]
+#
+#     - type: url
+#       target: https://github.com/ikto-cma-cgm/python-service-template/blob/main/template.yaml
+#       rules:
+#         - allow: [Template]
+#
+#     - type: url
+#       target: https://github.com/ikto-cma-cgm/react-app-template/blob/main/template.yaml
+#       rules:
+#         - allow: [Template]
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# 1. GitHub Token Setup:
+#    - Go to https://github.com/settings/tokens
+#    - Create a new Personal Access Token (classic)
+#    - Select scopes: repo, workflow, write:packages
+#    - Set environment variable: export GITHUB_TOKEN=ghp_xxxxx
+#
+# 2. Template Visibility:
+#    - 'recommended' tag in template makes it appear first
+#    - Tags help organize and filter templates
+#
+# 3. Testing:
+#    - For local testing, you can point to file:// URLs
+#    - Example: file:///absolute/path/to/template.yaml
+#
+# 4. Refreshing Templates:
+#    - Templates auto-refresh periodically
+#    - Force refresh: Catalog page > Template entity > Refresh button
+#    - Or use API: POST /api/catalog/refresh
+#
+# 5. Security:
+#    - Never commit GITHUB_TOKEN to version control
+#    - Use environment variables or secret management
+#    - Rotate tokens regularly
+#
+# ============================================================================
