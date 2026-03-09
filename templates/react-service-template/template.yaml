@@ -1,0 +1,496 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: react-service-template
+  title: React/Next.js Application
+  description: Create a modern React/Next.js application with TypeScript, Tailwind CSS, and best practices
+  tags:
+    - application
+    - react
+    - nextjs
+    - typescript
+    - frontend
+    - tailwind
+spec:
+  owner: platform-team
+  type: website
+
+  # These parameters are used to generate the project
+  parameters:
+    - title: Application Information
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Application Name
+          type: string
+          description: Unique name for the application (lowercase, hyphens allowed)
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          maxLength: 50
+          ui:autofocus: true
+          ui:help: 'Use lowercase letters, numbers, and hyphens. Must start with a letter (e.g., customer-portal-app)'
+
+        description:
+          title: Description
+          type: string
+          description: A brief description of what this application does
+          maxLength: 200
+          ui:help: 'Provide a clear, concise description (e.g., "Customer portal for managing orders and invoices")'
+
+        owner:
+          title: Owner
+          type: string
+          description: Team or user who owns this application
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+              - kind: User
+          ui:help: 'Select the team or individual responsible for this application'
+
+    - title: Repository Configuration
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - ikto-cma-cgm
+            allowedRepos: []
+          description: GitHub repository for the new application
+
+        defaultBranch:
+          title: Default Branch
+          type: string
+          description: Default branch name for the repository
+          default: main
+          enum:
+            - main
+            - master
+            - develop
+
+    - title: Application Configuration
+      properties:
+        system:
+          title: System
+          type: string
+          description: Which system does this application belong to?
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: System
+          ui:help: 'Select the system this application is part of (optional)'
+
+        port:
+          title: Development Port
+          type: number
+          description: Port number for local development
+          default: 3000
+          minimum: 1024
+          maximum: 65535
+
+        nodeVersion:
+          title: Node.js Version
+          type: string
+          description: Node.js runtime version
+          default: '20.x'
+          enum:
+            - '18.x'
+            - '20.x'
+            - '22.x'
+
+        includePWA:
+          title: Include PWA Support
+          type: boolean
+          description: Add Progressive Web App capabilities
+          default: false
+
+        includeI18n:
+          title: Include Internationalization
+          type: boolean
+          description: Add i18n support for multiple languages
+          default: false
+
+    - title: CI/CD and Deployment
+      properties:
+        enableCICD:
+          title: Enable CI/CD Pipeline
+          type: boolean
+          description: Include GitHub Actions workflows for CI/CD
+          default: true
+
+        enableDocker:
+          title: Enable Docker Support
+          type: boolean
+          description: Include Dockerfile and docker-compose configuration
+          default: true
+
+        deploymentTarget:
+          title: Deployment Target
+          type: string
+          description: Target platform for deployment
+          default: vercel
+          enum:
+            - vercel
+            - netlify
+            - kubernetes
+            - docker
+            - none
+          enumNames:
+            - Vercel (Recommended)
+            - Netlify
+            - Kubernetes
+            - Docker/Self-hosted
+            - None (Manual deployment)
+
+        ciProvider:
+          title: CI/CD Provider
+          type: string
+          description: Select your CI/CD platform
+          default: github-actions
+          enum:
+            - github-actions
+            - jenkins
+            - gitlab-ci
+
+    - title: Testing Configuration
+      properties:
+        testingFramework:
+          title: Unit Testing Framework
+          type: string
+          description: Choose the unit testing framework
+          default: vitest
+          enum:
+            - vitest
+            - jest
+            - none
+          enumNames:
+            - Vitest (Recommended)
+            - Jest
+            - None
+
+        e2eFramework:
+          title: E2E Testing Framework
+          type: string
+          description: Choose the E2E testing framework
+          default: playwright
+          enum:
+            - playwright
+            - cypress
+            - none
+          enumNames:
+            - Playwright (Recommended)
+            - Cypress
+            - None
+
+        includeCoverage:
+          title: Include Coverage Reporting
+          type: boolean
+          description: Add coverage reporting for tests
+          default: true
+
+    - title: Quality & Code Standards
+      properties:
+        enableLinting:
+          title: Enable Linting
+          type: boolean
+          description: Include ESLint configuration with recommended rules
+          default: true
+
+        enableFormatting:
+          title: Enable Code Formatting
+          type: boolean
+          description: Include Prettier configuration for code formatting
+          default: true
+
+        enablePreCommitHooks:
+          title: Enable Pre-commit Hooks
+          type: boolean
+          description: Add Husky and lint-staged for pre-commit quality checks
+          default: true
+
+    - title: Monitoring & Analytics
+      properties:
+        errorTracking:
+          title: Error Tracking
+          type: string
+          description: "Choose error tracking solution (Note: Sentry not yet compatible with Next.js 16)"
+          default: none
+          enum:
+            - none
+            - sentry
+          enumNames:
+            - None
+            - Sentry (Not compatible with Next.js 16 yet)
+
+        includeAnalytics:
+          title: Include Analytics
+          type: boolean
+          description: Add analytics tracking setup
+          default: false
+
+  # Steps to execute when the template is used
+  steps:
+    # 1. Fetch the base template
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutTemplating:
+          - '**/*.png'
+          - '**/*.jpg'
+          - '**/*.jpeg'
+          - '**/*.gif'
+          - '**/*.svg'
+          - '**/*.ico'
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          port: ${{ parameters.port }}
+          nodeVersion: ${{ parameters.nodeVersion }}
+          defaultBranch: ${{ parameters.defaultBranch }}
+          repoUrl: ${{ parameters.repoUrl }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+          # Feature flags
+          includePWA: ${{ parameters.includePWA }}
+          includeI18n: ${{ parameters.includeI18n }}
+          uiLibrary: ${{ parameters.uiLibrary }}
+          includeAnimations: ${{ parameters.includeAnimations }}
+          includeAuth: ${{ parameters.includeAuth }}
+          includeAPI: ${{ parameters.includeAPI }}
+          includeStateManagement: ${{ parameters.includeStateManagement }}
+          enableCICD: ${{ parameters.enableCICD }}
+          enableDocker: ${{ parameters.enableDocker }}
+          deploymentTarget: ${{ parameters.deploymentTarget }}
+          enableBundleAnalysis: ${{ parameters.deploymentTarget == 'vercel' }}
+          enableLighthouse: ${{ parameters.deploymentTarget == 'vercel' }}
+          enableSecurityScan: true
+
+          # Testing configuration
+          testingFramework: ${{ parameters.testingFramework }}
+          e2eFramework: ${{ parameters.e2eFramework }}
+          includeCoverage: ${{ parameters.includeCoverage }}
+          runTests: ${{ parameters.testingFramework != 'none' }}
+          runE2ETests: ${{ parameters.e2eFramework != 'none' }}
+
+          # Quality configuration
+          enableLinting: ${{ parameters.enableLinting }}
+          runLint: ${{ parameters.enableLinting }}
+          enableFormatting: ${{ parameters.enableFormatting }}
+          enablePreCommitHooks: ${{ parameters.enablePreCommitHooks }}
+
+          # Monitoring
+          errorTracking: ${{ parameters.errorTracking }}
+          includeAnalytics: ${{ parameters.includeAnalytics }}
+
+          # Computed values
+          timestamp: ${{ '' | now }}
+          year: ${{ '' | now }}
+
+    # 2. Fetch CI/CD Template (Composition)
+    - id: fetch-cicd
+      name: Fetch CI/CD Pipeline
+      action: fetch:template
+      if: ${{ parameters.enableCICD }}
+      input:
+        # Fetch from the integration template using absolute Git URL via Composition Pattern
+        url: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/integration/cicd-service-template/skeleton/react/${{ parameters.ciProvider }}
+        values:
+          appName: ${{ parameters.name }}
+          # React template uses nodeVersion too
+          nodeVersion: ${{ parameters.nodeVersion }}
+          deploymentTarget: ${{ parameters.deploymentTarget }}
+          ciProvider: ${{ parameters.ciProvider }}
+          defaultBranch: ${{ parameters.defaultBranch }}
+          # Feature flags
+          enableCICD: ${{ parameters.enableCICD }}
+          runLint: ${{ parameters.enableLinting }}
+          runTests: ${{ parameters.testingFramework != 'none' }}
+          runE2ETests: ${{ parameters.e2eFramework != 'none' }}
+          enableDocker: ${{ parameters.enableDocker }}
+          
+          # Additional variables required by Jenkins/GitLab skeletons
+          # React usually doesn't need DB/Redis in the build pipeline context unless SSR/Integration tests require it
+          requiresDatabase: false
+          requiresRedis: false
+          enableCodeCoverage: true
+          enableSonarQube: true
+          enableAutoDeployment: ${{ parameters.deploymentTarget != 'none' }}
+          kubernetesNamespace: default
+          ecsCluster: default-cluster
+          
+          # React specific build command might be needed if not standard 'npm run build'
+          buildCommand: 'npm run build'
+
+    # 3. Create the GitHub repository
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: ${{ parameters.defaultBranch }}
+        repoVisibility: private
+        deleteBranchOnMerge: true
+        gitAuthorName: ${{ user.entity.metadata.name }}
+        gitAuthorEmail: ${{ user.entity.spec.profile.email }}
+        topics:
+          - react
+          - nextjs
+          - typescript
+          - backstage
+          - frontend
+          - ${{ parameters.name }}
+
+    # 3. Register the component in Backstage catalog
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl | replace('/tree/', '/blob/') }}
+        catalogInfoPath: /catalog-info.yaml
+
+    # 4. Create initial labels
+    # Note: The github:issues:label:create action requires additional setup
+    # See: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/integration/cicd-service-template/skeleton/react/${{ parameters.ciProvider }}
+    # - id: create-labels
+    #   name: Create GitHub Labels
+    #   action: github:issues:label:create
+    #   input:
+    #     repoUrl: ${{ parameters.repoUrl }}
+    #     labels:
+    #       - name: bug
+    #         color: d73a4a
+    #         description: Something isn't working
+    #       - name: enhancement
+    #         color: a2eeef
+    #         description: New feature or request
+    #       - name: documentation
+    #         color: 0075ca
+    #         description: Documentation improvements
+    #       - name: ui/ux
+    #         color: e99695
+    #         description: User interface and experience
+    #       - name: performance
+    #         color: d4c5f9
+    #         description: Performance improvements
+    #       - name: security
+    #         color: ee0701
+    #         description: Security-related issues
+    #       - name: dependencies
+    #         color: 0366d6
+    #         description: Dependencies updates
+    #       - name: good-first-issue
+    #         color: 7057ff
+    #         description: Good for newcomers
+
+  # Output to show the user
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+        icon: github
+
+      - title: Open in Backstage Catalog
+        url: ${{ steps.register.output.catalogInfoUrl }}
+        icon: catalog
+
+      - title: Clone Repository
+        url: ${{ steps.publish.output.cloneUrl }}
+        icon: download
+
+      - title: View CI/CD Pipeline
+        url: ${{ steps.publish.output.remoteUrl }}/actions
+        icon: build
+
+    text:
+      - title: Next Steps
+        content: |
+          Your new React application **${{ parameters.name }}** has been created successfully!
+
+          ## Configuration Summary
+
+          - **Unit Testing**: ${{ parameters.testingFramework }}
+          - **E2E Testing**: ${{ parameters.e2eFramework }}
+          - **Coverage**: ${{ if parameters.includeCoverage }}Enabled${{ else }}Disabled${{ endif }}
+          - **Error Tracking**: ${{ parameters.errorTracking }}
+          - **Analytics**: ${{ if parameters.includeAnalytics }}Enabled${{ else }}Disabled${{ endif }}
+
+          ## Quick Start
+
+          1. **Clone the repository:**
+             ```bash
+             git clone ${{ steps.publish.output.cloneUrl }}
+             cd ${{ parameters.name }}
+             ```
+
+          2. **Install dependencies:**
+             ```bash
+             npm install
+             ```
+
+          3. **Start development server:**
+             ```bash
+             npm run dev
+             ```
+
+          4. **Access your application:**
+             - Application: http://localhost:${{ parameters.port }}
+             - Open your browser and start developing!
+
+          ## Available Scripts
+
+          - `npm run dev` - Start development server
+          - `npm run build` - Create production build
+          - `npm run start` - Start production server
+          - `npm run lint` - Run ESLint
+          ${{ if parameters.testingFramework != 'none' }}
+          - `npm run test` - Run unit tests
+          - `npm run test:watch` - Run tests in watch mode
+          ${{ if parameters.includeCoverage }}
+          - `npm run test:coverage` - Run tests with coverage
+          ${{ endif }}
+          ${{ endif }}
+          ${{ if parameters.e2eFramework != 'none' }}
+          - `npm run test:e2e` - Run E2E tests
+          ${{ endif }}
+
+          ${{ if parameters.testingFramework != 'none' or parameters.e2eFramework != 'none' }}
+          ## Testing
+
+          Your application includes a comprehensive testing setup:
+          ${{ if parameters.testingFramework != 'none' }}
+          - Unit & integration tests with **${{ parameters.testingFramework }}**
+          ${{ endif }}
+          ${{ if parameters.e2eFramework != 'none' }}
+          - E2E testing with **${{ parameters.e2eFramework }}**
+          ${{ endif }}
+          ${{ if parameters.includeCoverage }}
+          - Coverage reporting enabled
+          ${{ endif }}
+
+          All testing tools are part of your repository and can be customized as needed.
+
+          ${{ endif }}
+
+          ## Resources
+
+          - [Repository](${{ steps.publish.output.remoteUrl }})
+          - [Backstage Catalog](${{ steps.register.output.catalogInfoUrl }})
+          - [CI/CD Pipeline](${{ steps.publish.output.remoteUrl }}/actions)
+          - [Next.js Documentation](https://nextjs.org/docs)
+
+          ## Support
+
+          For questions or issues, contact the Platform Team or check the template documentation.
