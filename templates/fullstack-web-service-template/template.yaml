@@ -250,7 +250,7 @@ spec:
       name: Add React Frontend
       action: fetch:template
       input:
-        url: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/application/react-service-template/skeleton
+        url: ../react-service-template/skeleton
         targetPath: ./apps/frontend
         copyWithoutTemplating:
           - '**/*.png'
@@ -285,7 +285,7 @@ spec:
       name: Add Node.js Backend
       action: fetch:template
       input:
-        url: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/application/node-service-template/skeleton
+        url: ../node-service-template/skeleton
         targetPath: ./apps/backend
         values:
           name: ${{ parameters.name }}-backend
@@ -301,62 +301,6 @@ spec:
           enableGrafana: false
           enableSentry: false
           logLevel: info
-
-    # 4. Fetch SonarQube configuration if enabled
-    - id: fetch-sonarqube
-      name: Add SonarQube Quality Scanner
-      if: ${{ parameters.enableSonarQube }}
-      action: fetch:template
-      input:
-        url: https://github.com/ikto-cma-cgm/backstage/tree/main/templates/quality/sonarqube-scanner-template/skeleton
-        values:
-          projectKey: ${{ parameters.name }}
-          projectName: ${{ parameters.name }}
-          projectVersion: '1.0.0'
-          projectType: fullstack
-          sourceEncoding: UTF-8
-          qualityGate: ${{ parameters.sonarQubeQualityGate }}
-          minCoverage: 80
-          minDuplication: 3
-          blockOnFailure: true
-          enableSecurityHotspots: true
-          enableBranchAnalysis: false
-          enablePRDecoration: true
-          scanOnPR: true
-          scanOnPush: true
-          serviceMode: ephemeral
-
-    # 5. Fetch WebdriverIO configuration if enabled
-    - id: fetch-webdriverio
-      name: Add WebdriverIO E2E Testing
-      if: ${{ parameters.enableWebdriverIO }}
-      action: fetch:template
-      input:
-        url: https://github.com/ikto-cma-cgm/backstage/tree/qes-lab/templates/quality/webdriverio-template/skeleton
-        values:
-          projectName: ${{ parameters.name }}
-          baseUrl: 'http://localhost:${{ parameters.frontendPort }}'
-          testTimeout: 60000
-          testType: e2e
-          testFramework: mocha
-          includePageObjects: true
-          browsers: ${{ parameters.wdioBrowsers }}
-          headless: true
-          browserVersion: 'latest'
-          executionMode: ${{ parameters.wdioExecutionMode }}
-          parallelExecution: true
-          maxInstances: 5
-          dockerizeRunner: ${{ parameters.wdioDockerizeRunner }}
-          reporters:
-            - spec
-            - allure
-            - junit
-          enableScreenshots: true
-          enableVideo: false
-          runOnPR: true
-          runOnPush: true
-          runScheduled: false
-          scheduleCron: '0 2 * * *'
 
     # 6. Publish to GitHub
     - id: publish
