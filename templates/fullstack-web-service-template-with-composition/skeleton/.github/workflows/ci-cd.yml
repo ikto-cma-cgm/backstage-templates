@@ -1,0 +1,152 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - ${{ values.defaultBranch }}
+      - develop
+  pull_request:
+    branches:
+      - ${{ values.defaultBranch }}
+
+env:
+  NODE_VERSION: '${{ values.nodeVersion }}'
+
+jobs:
+  # Job pour le frontend
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: {% raw %}${{ env.NODE_VERSION }}{% endraw %}
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+
+      {% if values.e2eFramework != 'none' %}- name: Run E2E tests
+        run: npm run test:e2e
+      {% endif %}
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: {% raw %}${{ secrets.API_URL || 'http://localhost:${{ values.backendPort }}/api/v1' }}{% endraw %}
+
+      {% if values.deploymentTarget == 'vercel' %}- name: Deploy to Vercel
+        if: github.ref == 'refs/heads/${{ values.defaultBranch }}'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: {% raw %}${{ secrets.VERCEL_TOKEN }}{% endraw %}
+          vercel-org-id: {% raw %}${{ secrets.VERCEL_ORG_ID }}{% endraw %}
+          vercel-project-id: {% raw %}${{ secrets.VERCEL_PROJECT_ID }}{% endraw %}
+          working-directory: apps/frontend
+      {% endif %}
+
+  # Job pour le backend
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    
+    {% if values.includeDatabase %}services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    {% endif %}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: {% raw %}${{ env.NODE_VERSION }}{% endraw %}
+          cache: 'npm'
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+        env:
+          NODE_ENV: test
+          {% if values.includeDatabase %}DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db{% endif %}
+
+      - name: Build application
+        run: npm run build
+
+      {% if values.enableDocker %}- name: Build Docker image
+        if: github.ref == 'refs/heads/${{ values.defaultBranch }}'
+        working-directory: apps/backend
+        run: |
+          docker build -t ${{ values.name }}-backend:{% raw %}${{ github.sha }}{% endraw %} .
+          docker tag ${{ values.name }}-backend:{% raw %}${{ github.sha }}{% endraw %} ${{ values.name }}-backend:latest
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/${{ values.defaultBranch }}'
+        run: |
+          echo {% raw %}${{ secrets.DOCKER_PASSWORD }}{% endraw %} | docker login -u {% raw %}${{ secrets.DOCKER_USERNAME }}{% endraw %} --password-stdin
+          docker push ${{ values.name }}-backend:{% raw %}${{ github.sha }}{% endraw %}
+          docker push ${{ values.name }}-backend:latest
+      {% endif %}
+
+  # Job de déploiement (optionnel)
+  {% if values.deploymentTarget == 'kubernetes' %}deploy:
+    name: Deploy to Kubernetes
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/${{ values.defaultBranch }}'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: {% raw %}${{ secrets.KUBE_CONFIG }}{% endraw %}
+
+      - name: Deploy backend
+        run: |
+          kubectl set image deployment/${{ values.name }}-backend backend=${{ values.name }}-backend:{% raw %}${{ github.sha }}{% endraw %}
+          kubectl rollout status deployment/${{ values.name }}-backend
+
+      - name: Deploy frontend
+        run: |
+          kubectl set image deployment/${{ values.name }}-frontend frontend=${{ values.name }}-frontend:{% raw %}${{ github.sha }}{% endraw %}
+          kubectl rollout status deployment/${{ values.name }}-frontend
+  {% endif %}
