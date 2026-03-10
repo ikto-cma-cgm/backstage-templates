@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-website-advanced-with-composition
-  title: "🔧 Create a Website (Advanced) / with template composition v3"
+  title: "🔧 Create a Website (Advanced) / with template composition v4"
   description: |
     **Composable Service** - Build a custom full-stack website with full control.
     Choose your stack, configure every option, compose your perfect setup.
