@@ -27,7 +27,7 @@ This project comes with **production-ready examples** demonstrating React best p
 
 ## Features
 
-- Next.js ${{ values.nodeVersion }} with App Router
+- Next.js ${{ values.nodeJsVersion }} with App Router
 - TypeScript for type safety
 - Tailwind CSS for styling
 {%- if values.uiLibrary != 'none' %}
@@ -65,7 +65,7 @@ This project comes with **production-ready examples** demonstrating React best p
 
 ## Prerequisites
 
-- Node.js >= ${{ values.nodeVersion }}
+- Node.js >= ${{ values.nodeJsVersion }}
 - npm >= 9.0.0
 {%- if values.enableDocker %}
 - Docker (optional, for containerized development)

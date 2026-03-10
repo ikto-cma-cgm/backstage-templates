@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: react-service-template
-  title: React/Next.js Application
+  title: React/Next.js Application v2
   description: Create a modern React/Next.js application with TypeScript, Tailwind CSS, and best practices
   tags:
     - application
@@ -257,7 +257,7 @@ spec:
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           port: ${{ parameters.port }}
-          nodeVersion: ${{ parameters.nodeVersion }}
+          nodeJsVersion: ${{ parameters.nodeVersion }}
           defaultBranch: ${{ parameters.defaultBranch }}
           repoUrl: ${{ parameters.repoUrl }}
           destination: ${{ parameters.repoUrl | parseRepoUrl }}

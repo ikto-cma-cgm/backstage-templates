@@ -21,7 +21,7 @@ This template generates a modern React/Next.js application with TypeScript, Tail
 
 ### Prerequisites
 
-- Node.js >= ${{ values.nodeVersion }}
+- Node.js >= ${{ values.nodeJsVersion }}
 - npm >= 9.0.0
 - Docker (optional, for containerized development)
 
@@ -62,7 +62,7 @@ Visit:
 
 ## Features
 
-- Next.js ${{ values.nodeVersion }} with App Router
+- Next.js ${{ values.nodeJsVersion }} with App Router
 - TypeScript for type safety
 - Tailwind CSS for styling
 {%- if values.uiLibrary != 'none' %}

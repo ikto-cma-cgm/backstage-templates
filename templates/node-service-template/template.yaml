@@ -237,10 +237,6 @@ spec:
           timestamp: ${{ '' | now }}
           year: ${{ '' | now }}
 
-
-
-
-
     # 2. Fetch CI/CD Template (Composition)
     - id: fetch-cicd
       name: Fetch CI/CD Pipeline
