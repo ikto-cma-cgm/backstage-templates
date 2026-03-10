@@ -20,7 +20,7 @@ spec:
   owner: platform-team
   type: website
 #  $yaml: '../react-service-template/template.yaml#/spec/parameters'
-  $yaml: './parameters'
+  $text: './parameters.yaml'
 
 #  parameters:
 #    - title: Project Information
