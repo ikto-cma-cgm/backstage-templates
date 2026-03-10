@@ -19,7 +19,7 @@ metadata:
 spec:
   owner: platform-team
   type: website
-  $ref: '../react-service-template/template.yaml#/spec/parameters'
+  $yaml: '../react-service-template/template.yaml#/spec/parameters'
 
 #  parameters:
 #    - title: Project Information
