@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-website-advanced-with-composition
-  title: "🔧 Create a Website (Advanced) / with template composition"
+  title: "🔧 Create a Website (Advanced) / with template composition v2"
   description: |
     **Composable Service** - Build a custom full-stack website with full control.
     Choose your stack, configure every option, compose your perfect setup.
@@ -19,7 +19,8 @@ metadata:
 spec:
   owner: platform-team
   type: website
-  $yaml: '../react-service-template/template.yaml#/spec/parameters'
+#  $yaml: '../react-service-template/template.yaml#/spec/parameters'
+  $yaml: './parameters.yaml'
 
 #  parameters:
 #    - title: Project Information

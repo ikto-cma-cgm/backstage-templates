@@ -1,0 +1,201 @@
+parameters:
+  - title: Project Information
+    required:
+      - name
+      - description
+      - owner
+    properties:
+      name:
+        title: Project Name
+        type: string
+        description: Unique name for the full-stack project (lowercase, hyphens allowed)
+        pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+        maxLength: 50
+        ui:autofocus: true
+        ui:help: 'This will be the repository name (e.g., customer-portal)'
+
+      description:
+        title: Description
+        type: string
+        description: A brief description of what this project does
+        maxLength: 200
+
+      owner:
+        title: Owner
+        type: string
+        description: Team or user who owns this project
+        ui:field: OwnerPicker
+        ui:options:
+          catalogFilter:
+            - kind: Group
+            - kind: User
+
+  - title: Repository Configuration
+    required:
+      - repoUrl
+    properties:
+      repoUrl:
+        title: Repository Location
+        type: string
+        ui:field: RepoUrlPicker
+        ui:options:
+          allowedHosts:
+            - github.com
+          allowedOwners:
+            - ikto-cma-cgm
+        description: GitHub repository for the monorepo
+
+      defaultBranch:
+        title: Default Branch
+        type: string
+        description: Default branch name
+        default: main
+        enum:
+          - main
+          - master
+          - develop
+
+  - title: Frontend Configuration
+    properties:
+      frontendPort:
+        title: Frontend Development Port
+        type: number
+        description: Port for the React frontend
+        default: 3000
+        minimum: 1024
+        maximum: 65535
+
+      nodeVersion:
+        title: Node.js Version
+        type: string
+        description: Node.js runtime version for both frontend and backend
+        default: '20.x'
+        enum:
+          - '18.x'
+          - '20.x'
+          - '22.x'
+
+      includePWA:
+        title: Include PWA Support
+        type: boolean
+        description: Add Progressive Web App capabilities
+        default: false
+
+  - title: Backend Configuration
+    properties:
+      backendPort:
+        title: Backend Service Port
+        type: number
+        description: Port for the Node.js backend
+        default: 3001
+        minimum: 1024
+        maximum: 65535
+
+      includeDatabase:
+        title: Include Database Configuration
+        type: boolean
+        description: Add PostgreSQL database configuration
+        default: true
+
+      includeRedis:
+        title: Include Redis Configuration
+        type: boolean
+        description: Add Redis caching configuration
+        default: false
+
+  - title: CI/CD and Deployment
+    properties:
+      enableCICD:
+        title: Enable CI/CD Pipeline
+        type: boolean
+        description: Include GitHub Actions workflows
+        default: true
+
+      enableDocker:
+        title: Enable Docker Support
+        type: boolean
+        description: Include Docker configuration for both services
+        default: true
+
+      ciProvider:
+        title: CI/CD Provider
+        type: string
+        description: Select your CI/CD platform
+        default: github-actions
+        enum:
+          - github-actions
+          - jenkins
+          - gitlab-ci
+
+  - title: Quality & SonarQube
+    properties:
+      enableSonarQube:
+        title: Enable SonarQube Scanning
+        type: boolean
+        description: Add SonarQube code quality analysis to your pipeline
+        default: true
+
+      sonarQubeQualityGate:
+        title: SonarQube Quality Gate
+        type: string
+        description: Strictness of the quality gate
+        default: balanced
+        enum:
+          - strict
+          - balanced
+          - lenient
+        ui:options:
+          dependencies:
+            enableSonarQube: true
+
+  - title: E2E Testing & WebdriverIO
+    properties:
+      enableWebdriverIO:
+        title: Enable WebdriverIO E2E Testing
+        type: boolean
+        description: Add WebdriverIO end-to-end testing to your project
+        default: true
+
+      wdioExecutionMode:
+        title: WebdriverIO Execution Mode
+        type: string
+        description: How to run the tests
+        default: docker
+        enum:
+          - local
+          - docker
+          - cloud
+        enumNames:
+          - 'Local (Your machine)'
+          - 'Docker (Containerized browsers)'
+          - 'Cloud Service (BrowserStack)'
+        ui:options:
+          dependencies:
+            enableWebdriverIO: true
+
+      wdioBrowsers:
+        title: Target Browsers
+        type: array
+        description: Browsers to run tests on
+        default:
+          - chrome
+        items:
+          type: string
+          enum:
+            - chrome
+            - firefox
+            - edge
+        uniqueItems: true
+        ui:widget: checkboxes
+        ui:options:
+          dependencies:
+            enableWebdriverIO: true
+
+      wdioDockerizeRunner:
+        title: Dockerize Test Runner
+        type: boolean
+        description: Run tests in Docker container (recommended for CI/CD)
+        default: true
+        ui:options:
+          dependencies:
+            enableWebdriverIO: true
