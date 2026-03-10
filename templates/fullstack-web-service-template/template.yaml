@@ -250,7 +250,7 @@ spec:
       name: Add React Frontend
       action: fetch:template
       input:
-        url: ../react-service-template/skeleton
+        url: ../react-service-template/skeleton-v1
         targetPath: ./apps/frontend
         copyWithoutTemplating:
           - '**/*.png'

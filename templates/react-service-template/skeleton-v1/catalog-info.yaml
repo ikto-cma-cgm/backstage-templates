@@ -1,0 +1,41 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  annotations:
+    # TechDocs configuration
+    backstage.io/techdocs-ref: dir:.
+
+    # Source code location
+    github.com/project-slug: ${{ values.destination.owner }}/${{ values.destination.repo }}
+
+    # CI/CD integration
+    {%- if values.enableCICD %}
+    github.com/workflows: ci.yml
+    {%- endif %}
+
+    # Kubernetes integration (if deployed to Kubernetes)
+    {%- if values.deploymentTarget == 'kubernetes' %}
+    kubernetes.io/deployment: ${{ values.name }}
+    {%- endif %}
+
+    # Sentry integration (optional)
+    {%- if values.enableSentry %}
+    sentry.io/project-slug: ${{ values.name }}
+    {%- endif %}
+
+spec:
+  type: website
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  {%- if values.system %}
+  system: ${{ values.system }}
+  {%- else %}
+  system: platform-services
+  {%- endif %}
+
+  # APIs consumed by this application
+  consumesApis: []
+
+  # Resources this application depends on
+  dependsOn: []
