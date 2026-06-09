@@ -1,2 +1,2 @@
-// This file intentionally replaces the base skeleton entry point.
-// The application main class is at src/main/java/${{ values.packagePath }}/Application.java
+package com.example.service;
+// Placeholder — deleted at generate-sources phase. Main entry point is ${{ values.packageName }}.Application.
