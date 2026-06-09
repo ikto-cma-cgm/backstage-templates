@@ -1,0 +1,43 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  tags:
+    - openapi
+  links:
+{%- if values.repoProvider == 'github' %}
+    - url: https://github.com/${{ values.repoOwner }}/${{ values.name }}
+      title: Repository
+      icon: github
+{%- else %}
+    - url: https://${{ values.gitlabHost }}/${{ values.repoOwner }}/${{ values.name }}
+      title: Repository
+      icon: gitlab
+{%- endif %}
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    cma-cgm.com/api-type: ${{ values.apiType }}
+    {%- if values.hopexComponentCode %}
+    cma-cgm.com/hopex-code: ${{ values.hopexComponentCode }}
+    {%- endif %}
+    {%- if values.apiLead %}
+    cma-cgm.com/api-lead: ${{ values.apiLead }}
+    {%- endif %}
+    {%- if values.apiFactory %}
+    cma-cgm.com/api-factory: ${{ values.apiFactory }}
+    {%- endif %}
+    {%- if values.apiDomainArchitectural %}
+    cma-cgm.com/x-domain: ${{ values.apiDomainArchitectural }}
+    {%- endif %}
+    {%- if values.domain %}
+    cma-cgm.com/domain: ${{ values.domain }}
+    {%- endif %}
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: ${{ values.system }}
+  domain: ${{ values.domain }}
+  definition:
+    $text: ./openapi.yaml

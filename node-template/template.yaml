@@ -1,0 +1,148 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: node-template
+  title: Node.js Microservice
+  description: Scaffolds a Node.js Express microservice with TypeScript, Docker and Backstage catalog integration.
+  annotations:
+    simpleicons.org/icon-slug: nodedotjs
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - nodejs
+    - standalone
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le service. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel ce service appartient. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: Node.js configuration
+      properties:
+        nodeVersion:
+          title: Node.js version
+          type: string
+          enum: ['18.x', '20.x', '22.x']
+          default: '20.x'
+          ui:help: 'Version Node.js utilisée pour le runtime, Docker et les engines npm.'
+        port:
+          title: Service port
+          type: number
+          default: 3000
+          ui:help: 'Port HTTP exposé par le service et le conteneur Docker.'
+
+    - title: Repository platform
+      required: [repoProvider]
+      properties:
+        repoProvider:
+          title: Publish to
+          type: string
+          enum: ['github', 'gitlab']
+          enumNames:
+            - GitHub
+            - GitLab
+          default: 'github'
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+
+    - title: GitHub Information
+      required: [repoOwner]
+      properties:
+        repoOwner:
+          title: GitHub Owner
+          type: string
+          default: 'ikto-cma-cgm'
+          ui:help: 'Organisation ou utilisateur GitHub propriétaire du repository.'
+      when: ${{ parameters.repoProvider === 'github' }}
+
+    - title: GitLab Information
+      required: [gitlabHost, repoOwner]
+      properties:
+        gitlabHost:
+          title: GitLab Host
+          type: string
+          default: 'gitlab.com'
+          ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+        repoOwner:
+          title: GitLab Namespace
+          type: string
+          ui:help: 'Namespace GitLab dans lequel créer le repository.'
+      when: ${{ parameters.repoProvider === 'gitlab' }}
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          nodeVersion: ${{ parameters.nodeVersion }}
+          port: ${{ parameters.port }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+    text:
+      - title: Next Steps
+        content: |
+          Service **${{ parameters.name }}** créé avec succès.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Installez les dépendances : `npm install`
+          3. Lancez localement : `npm run dev`
+          4. Vérifiez la santé : `curl http://localhost:${{ parameters.port }}/health`

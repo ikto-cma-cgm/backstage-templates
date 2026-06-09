@@ -1,0 +1,7 @@
+site_name: springboot-liquibase-composition-template
+site_description: Scaffolds a Spring Boot microservice with integrated Liquibase DB migrations.
+docs_dir: docs
+nav:
+  - Overview: index.md
+plugins:
+  - techdocs-core

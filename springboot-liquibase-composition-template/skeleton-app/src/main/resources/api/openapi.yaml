@@ -1,0 +1,31 @@
+openapi: "3.0.3"
+info:
+  title: ${{ values.name }} API
+  version: "1.0.0"
+  description: ${{ values.description }}
+paths:
+  /examples:
+    get:
+      tags:
+        - Example
+      summary: List examples
+      operationId: listExamples
+      responses:
+        '200':
+          description: Successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExampleResponse'
+components:
+  schemas:
+    ExampleResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string

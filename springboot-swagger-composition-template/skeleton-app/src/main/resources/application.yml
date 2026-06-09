@@ -1,0 +1,62 @@
+info:
+  app:
+    tag: "env.PROJECT_VERSION"
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ${{ values.name }}
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant-path-matcher
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db-changelog.xml
+
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include:
+          - "info"
+          - "health"
+          - "metrics"
+          - "prometheus"
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  health:
+    db:
+      enabled: true
+    probes:
+      enabled: true
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        prometheus:
+          enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method

@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ${{ values.name }}-liquibase-db
+  description: ${{ values.description }}
+  tags:
+    - liquibase
+    - database
+  links:
+    - url: https://${{ values.repoProvider }}.com/${{ values.repoOwner }}/${{ values.name }}
+      title: Repository
+      icon: ${{ values.repoProvider }}
+  annotations:
+    simpleicons.org/icon-slug: liquibase
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: liquibase
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: ${{ values.system }}
+  domain: ${{ values.domain }}

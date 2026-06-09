@@ -1,0 +1,12 @@
+pipelineType: none
+provisioner: xldeploy
+provisionFor:
+  - feature
+  - hotfix
+  - release
+  - develop
+
+runTests: false
+runSonar: false
+qualityGate: false
+packageAsZip: true

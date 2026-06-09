@@ -1,0 +1,11 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: ${{ values.name }}-liquibase-location
+  description: Liquibase migration scripts for ${{ values.name }}
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  labels:
+    lifecycle: experimental
+spec:
+  targets: []

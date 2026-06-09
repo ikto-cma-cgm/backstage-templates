@@ -1,0 +1,248 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: springboot-swagger-composition-template
+  title: Spring Boot Microservice with OpenAPI Spec
+  description: Scaffolds a Spring Boot 3 microservice with an embedded OpenAPI spec, Maven code generation, Docker and Backstage API catalog integration.
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - openapi
+    - composition
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le service. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel ce service appartient. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: API specification
+      required: [apiRef]
+      properties:
+        apiRef:
+          title: API entity
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: API
+          ui:help: 'Entité API existante dans le Catalog (créée via le template OpenAPI Specification). La spec OpenAPI sera récupérée depuis le repo associé.'
+
+    - title: Java configuration
+      required: [packageName]
+      properties:
+        javaVersion:
+          title: Java version
+          type: string
+          enum: ['17', '21']
+          default: '21'
+          ui:help: 'Version Java utilisée par le projet et son image Docker.'
+        javaTool:
+          title: Java Tool
+          type: string
+          default: JAVA_21
+          ui:help: 'Code outil Java utilisé par le pipeline CI.'
+        groupId:
+          title: Maven Group ID
+          type: string
+          default: com.cma
+          ui:help: 'Identifiant Maven du groupe. Ex: com.cma'
+        packageName:
+          title: Java package name
+          type: string
+          default: com.example.service
+          ui:help: 'Package racine pour les classes Java. Ex: com.cma.pricing.api'
+        springBootVersion:
+          title: Spring Boot version
+          type: string
+          default: '3.4.2'
+          ui:help: 'Version de Spring Boot utilisée dans le parent Maven.'
+        springCloudVersion:
+          title: Spring Cloud version
+          type: string
+          default: '2024.0.0'
+          ui:help: 'Version de Spring Cloud.'
+
+    - title: HIP metadata
+      ui:autofocus: apiType
+      properties:
+        apiType:
+          title: API type
+          type: string
+          enum: [system, business, experience]
+          default: system
+          ui:enumNames:
+            - System (core asset API)
+            - Business (orchestration API)
+            - Experience (consumer-facing API)
+          ui:help: 'HIP API-led connectivity tier. Default: system.'
+        hopexComponentCode:
+          title: HOPEX component code
+          type: string
+          pattern: '^$|^CP\d+$'
+          ui:help: 'HOPEX Enterprise Architecture component code. Ex: CP00141. Optional — leave blank to omit.'
+        apiLead:
+          title: API Lead
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Business owner group for this API. Default: same as owner.'
+        apiFactory:
+          title: API Factory
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Group that builds this API. Default: same as owner.'
+        apiDomainArchitectural:
+          title: Architectural domain
+          type: string
+          ui:help: 'HIP architectural domain (x-domain extension). Default: same as Domain.'
+
+    - title: Repository destination
+      required: [repoProvider, repoOwner]
+      properties:
+        repoProvider:
+          title: Repository provider
+          type: string
+          enum: [github, gitlab]
+          default: github
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation ou namespace propriétaire du repository.'
+      dependencies:
+        repoProvider:
+          oneOf:
+            - properties:
+                repoProvider:
+                  enum: [github]
+            - properties:
+                repoProvider:
+                  enum: [gitlab]
+                gitlabHost:
+                  title: GitLab Host
+                  type: string
+                  default: gitlab.com
+                  ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+              required: [gitlabHost]
+
+  steps:
+    - id: fetch-skeleton-app
+      name: Fetch application skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton-app
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          apiRef: ${{ parameters.apiRef }}
+          apiEntityName: ${{ parameters.apiRef.split('/')[1] }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          apiType: ${{ parameters.apiType }}
+          hopexComponentCode: ${{ parameters.hopexComponentCode }}
+          apiLead: ${{ parameters.apiLead }}
+          apiFactory: ${{ parameters.apiFactory }}
+          apiDomainArchitectural: ${{ parameters.apiDomainArchitectural }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+    - id: register-catalog-github
+      name: Register in catalog (GitHub)
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: register-catalog-gitlab
+      name: Register in catalog (GitLab)
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        url: ${{ steps['register-catalog-github'].output.entityRef || steps['register-catalog-gitlab'].output.entityRef }}
+    text:
+      - title: Next Steps
+        content: |
+          Service **${{ parameters.name }}** scaffoldé avec succès.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Build (télécharge la spec et génère les interfaces Java) : `mvn clean install`
+          3. Implémentez les interfaces générées dans `target/generated-sources/openapi/` :
+             créez un `@RestController` qui implémente `${{ parameters.packageName }}.api.controller.{Tag}Api`
+          4. Lancez localement : `mvn spring-boot:run -Plocal`
+          5. Swagger UI : `http://localhost:8080/swagger-ui.html`
+          6. Le pipeline CI démarre automatiquement au premier push
