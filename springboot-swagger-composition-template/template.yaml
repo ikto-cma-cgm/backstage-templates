@@ -166,11 +166,34 @@ spec:
               required: [gitlabHost]
 
   steps:
-    - id: fetch-skeleton-app
-      name: Fetch application skeleton
+    - id: fetch-springboot-skeleton
+      name: Fetch Spring Boot base skeleton
       action: fetch:template
       input:
-        url: ./skeleton-app
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-template/skeleton?ref=v0.1.0
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-openapi-overlay
+      name: Fetch OpenAPI overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-overlay
+        targetPath: .
         values:
           name: ${{ parameters.name }}
           description: ${{ parameters.description }}

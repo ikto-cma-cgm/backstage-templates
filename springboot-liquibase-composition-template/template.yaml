@@ -129,11 +129,11 @@ spec:
               required: [gitlabHost]
 
   steps:
-    - id: fetch-skeleton-app
-      name: Fetch application skeleton
+    - id: fetch-springboot-skeleton
+      name: Fetch Spring Boot base skeleton
       action: fetch:template
       input:
-        url: ./skeleton-app
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-template/skeleton?ref=v0.1.0
         values:
           name: ${{ parameters.name }}
           description: ${{ parameters.description }}
@@ -144,18 +144,20 @@ spec:
           javaTool: ${{ parameters.javaTool }}
           groupId: ${{ parameters.groupId }}
           packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
           springBootVersion: ${{ parameters.springBootVersion }}
           springCloudVersion: ${{ parameters.springCloudVersion }}
           dbType: ${{ parameters.dbType }}
           changelogName: ${{ parameters.changelogName }}
           repoProvider: ${{ parameters.repoProvider }}
           repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
 
-    - id: fetch-skeleton-liquibase
-      name: Fetch Liquibase skeleton
+    - id: fetch-liquibase-skeleton
+      name: Fetch Liquibase base skeleton
       action: fetch:template
       input:
-        url: ./skeleton-liquibase
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-liquibase-template/skeleton?ref=v0.1.0
         targetPath: ./db
         values:
           name: ${{ parameters.name }}
@@ -167,6 +169,50 @@ spec:
           changelogName: ${{ parameters.changelogName }}
           repoProvider: ${{ parameters.repoProvider }}
           repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-app-overlay
+      name: Fetch application overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-overlay
+        targetPath: .
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-liquibase-overlay
+      name: Fetch Liquibase overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-liquibase-overlay
+        targetPath: ./db
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
 
     - id: publish-github
       name: Publish on GitHub
