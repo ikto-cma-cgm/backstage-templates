@@ -1,6 +1,1 @@
-openapi: "3.0.3"
-info:
-  title: ${{ values.name }} API
-  version: "1.0.0"
-  description: ${{ values.description }}
-paths: {}
+${{ values.apiSpecContent }}

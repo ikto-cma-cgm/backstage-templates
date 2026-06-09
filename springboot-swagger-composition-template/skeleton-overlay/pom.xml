@@ -184,37 +184,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>fetch-openapi-spec</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>curl</executable>
-                            <arguments>
-                                <argument>-fsSL</argument>
-                                <argument>--create-dirs</argument>
-                                <argument>-H</argument>
-{%- if values.repoProvider == 'github' %}
-                                <argument>Authorization: Bearer ${env.GITHUB_TOKEN}</argument>
-                                <argument>https://raw.githubusercontent.com/${{ values.repoOwner }}/${{ values.apiEntityName }}/main/openapi.yaml</argument>
-{%- else %}
-                                <argument>PRIVATE-TOKEN: ${env.GITLAB_TOKEN}</argument>
-                                <argument>https://${{ values.gitlabHost }}/${{ values.repoOwner }}/${{ values.apiEntityName }}/-/raw/main/openapi.yaml</argument>
-{%- endif %}
-                                <argument>-o</argument>
-                                <argument>${project.build.directory}/api-spec/openapi.yaml</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>${openapi-generator.version}</version>
@@ -224,7 +193,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.build.directory}/api-spec/openapi.yaml</inputSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/api/openapi.yaml</inputSpec>
                             <output>${project.basedir}</output>
                             <generatorName>spring</generatorName>
                             <apiPackage>${{ values.packageName }}.api.controller</apiPackage>
