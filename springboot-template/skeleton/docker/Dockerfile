@@ -6,11 +6,10 @@ FROM eclipse-temurin:21-jre-alpine
 {%- endif %}
 LABEL maintainer="cma"
 
-COPY jar/*.jar /app.jar
+COPY target/*.jar /app.jar
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-
-ENV SERVER_PORT 8080
+ENV SERVER_PORT=8080
 
 EXPOSE ${SERVER_PORT}
 
