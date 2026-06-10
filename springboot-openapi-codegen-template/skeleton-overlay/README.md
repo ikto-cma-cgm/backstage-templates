@@ -11,34 +11,36 @@ This service implements the OpenAPI contract **${{ values.apiName }}** and was s
 
 ## Getting Started
 
-### 1. Generate stubs from the spec
-
 ```bash
-chmod +x scripts/generate-stubs.sh
-./scripts/generate-stubs.sh
+mvn install
 ```
 
-This script runs `mvn generate-sources` then creates a controller stub for each tag in your OpenAPI spec:
+That's it. The build automatically:
+1. Fetches the spec from `src/main/resources/api/openapi.yaml`
+2. Generates API interfaces, delegate interfaces and controllers into `target/generated-sources/`
+3. Runs `scripts/generate-stubs.sh` to create a `<Tag>Controller.java` stub for each tag in your spec
+4. Compiles everything and packages the JAR
+
+Then implement your business logic in the generated stub(s) under `src/main/java/${{ values.packagePath }}/controller/`.
+
+---
+
+### Generated structure
 
 ```
+target/generated-sources/openapi/
+└── ${{ values.packageName }}.api.
+    ├── <Tag>Api.java              ← interface
+    ├── <Tag>ApiDelegate.java      ← implemented by your controller stub
+    ├── <Tag>ApiController.java    ← generated controller (do not edit)
+    └── model/
+        └── <Schema>.java
+
 src/main/java/${{ values.packagePath }}/controller/
-└── <Tag>Controller.java    ← generated stub, implements <Tag>ApiDelegate
+└── <Tag>Controller.java           ← generated stub — edit this
 ```
 
-The API interfaces and models land in `target/generated-sources/openapi/`:
-
-```
-${{ values.packageName }}.api.
-├── <Tag>Api.java              ← interface
-├── <Tag>ApiDelegate.java      ← implemented by your controller stub
-├── <Tag>ApiController.java    ← generated controller (do not edit)
-└── model/
-    └── <Schema>.java
-```
-
-### 2. Implement your business logic
-
-Edit the generated stub(s) in `src/main/java/${{ values.packagePath }}/controller/` and add your logic:
+### Example — spec with tag `Bookings`
 
 ```java
 @Component
@@ -52,7 +54,9 @@ public class BookingsController implements BookingsApiDelegate {
 }
 ```
 
-### 3. Run locally
+> Stubs are generated once (skip if already exist). Re-run `./scripts/generate-stubs.sh` manually to add stubs for new tags.
+
+### Run locally
 
 ```bash
 mvn spring-boot:run

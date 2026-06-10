@@ -1,18 +1,26 @@
 #!/usr/bin/env bash
 # generate-stubs.sh
 # Generates delegate implementations for every API tag found in the OpenAPI spec.
-# Run once after git clone, before the first `mvn compile`.
 #
-# Usage: ./scripts/generate-stubs.sh
+# Usage:
+#   ./scripts/generate-stubs.sh              # standalone: runs mvn generate-sources first
+#   ./scripts/generate-stubs.sh --from-maven # called by Maven process-sources: sources already generated
 
 set -euo pipefail
+
+FROM_MAVEN=false
+if [[ "${1:-}" == "--from-maven" ]]; then
+  FROM_MAVEN=true
+fi
 
 PACKAGE="${{ values.packageName }}"
 PACKAGE_PATH="src/main/java/${{ values.packagePath }}"
 GENERATED_DIR="target/generated-sources/openapi/src/main/java/${{ values.packagePath }}/api"
 
-echo "==> Running mvn generate-sources..."
-mvn generate-sources -q
+if [ "$FROM_MAVEN" = false ]; then
+  echo "==> Running mvn generate-sources..."
+  mvn generate-sources -q
+fi
 
 if [ ! -d "$GENERATED_DIR" ]; then
   echo "[ERROR] Generated sources not found at $GENERATED_DIR"
