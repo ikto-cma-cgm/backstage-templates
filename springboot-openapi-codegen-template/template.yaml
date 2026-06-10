@@ -169,6 +169,23 @@ spec:
           repoOwner: ${{ parameters.repoOwner }}
           gitlabHost: ${{ parameters.gitlabHost }}
 
+    - id: cleanup-example-files
+      name: Remove example placeholder files
+      action: fs:delete
+      input:
+        files:
+          - src/main/java/com/example/service/controller/HealthController.java
+          - src/main/java/com/example/service/model/Example.java
+          - src/main/java/com/example/service/service/ExampleService.java
+
+    - id: cleanup-base-application
+      name: Remove base Application.java when using custom package
+      if: ${{ parameters.packageName !== 'com.example.service' }}
+      action: fs:delete
+      input:
+        files:
+          - src/main/java/com/example/service/Application.java
+
     - id: fetch-api-spec-github
       name: Download OpenAPI spec (GitHub)
       if: ${{ parameters.repoProvider === 'github' }}

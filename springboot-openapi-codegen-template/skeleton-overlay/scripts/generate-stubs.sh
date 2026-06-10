@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # generate-stubs.sh
-# Generates delegate implementations for every API tag found in the OpenAPI spec.
+# Generates controller and service stubs for every API tag found in the OpenAPI spec.
+# Skips files that already exist — safe to run on every build.
 #
 # Usage:
 #   ./scripts/generate-stubs.sh              # standalone: runs mvn generate-sources first
-#   ./scripts/generate-stubs.sh --from-maven # called by Maven process-sources: sources already generated
+#   ./scripts/generate-stubs.sh --from-maven # called by Maven: sources already generated
 
 set -euo pipefail
 
@@ -14,22 +15,21 @@ if [[ "${1:-}" == "--from-maven" ]]; then
 fi
 
 PACKAGE="${{ values.packageName }}"
-PACKAGE_PATH="src/main/java/${{ values.packagePath }}"
-GENERATED_DIR="target/generated-sources/openapi/src/main/java/${{ values.packagePath }}/api"
+PACKAGE_PATH="src/main/java/$(echo "$PACKAGE" | tr '.' '/')"
+GENERATED_API_DIR="${PACKAGE_PATH}/api"
 
 if [ "$FROM_MAVEN" = false ]; then
   echo "==> Running mvn generate-sources..."
   mvn generate-sources -q
 fi
 
-if [ ! -d "$GENERATED_DIR" ]; then
-  echo "[ERROR] Generated sources not found at $GENERATED_DIR"
-  echo "        Check that src/main/resources/api/openapi.yaml is a valid OpenAPI spec."
+if [ ! -d "$GENERATED_API_DIR" ]; then
+  echo "[ERROR] Generated API sources not found at $GENERATED_API_DIR"
+  echo "        Run 'mvn generate-sources' first."
   exit 1
 fi
 
-# Collect delegate interfaces: <Tag>ApiDelegate.java
-DELEGATES=$(find "$GENERATED_DIR" -maxdepth 1 -name "*ApiDelegate.java" ! -name "ApiUtil*" 2>/dev/null)
+DELEGATES=$(find "$GENERATED_API_DIR" -maxdepth 1 -name "*ApiDelegate.java" ! -name "ApiUtil*" 2>/dev/null)
 
 if [ -z "$DELEGATES" ]; then
   echo "[WARN] No *ApiDelegate.java found. Nothing to generate."
@@ -37,49 +37,66 @@ if [ -z "$DELEGATES" ]; then
 fi
 
 mkdir -p "$PACKAGE_PATH/controller"
+mkdir -p "$PACKAGE_PATH/service"
 
 for DELEGATE_FILE in $DELEGATES; do
-  DELEGATE_CLASS=$(basename "$DELEGATE_FILE" .java)            # e.g. BookingsApiDelegate
-  TAG=$(echo "$DELEGATE_CLASS" | sed 's/ApiDelegate$//')       # e.g. Bookings
+  DELEGATE_CLASS=$(basename "$DELEGATE_FILE" .java)
+  TAG=$(echo "$DELEGATE_CLASS" | sed 's/ApiDelegate$//')
   CONTROLLER_CLASS="${TAG}Controller"
+  SERVICE_CLASS="${TAG}Service"
   CONTROLLER_FILE="$PACKAGE_PATH/controller/${CONTROLLER_CLASS}.java"
+  SERVICE_FILE="$PACKAGE_PATH/service/${SERVICE_CLASS}.java"
 
-  if [ -f "$CONTROLLER_FILE" ]; then
-    echo "    [SKIP] $CONTROLLER_CLASS already exists"
-    continue
+  # --- Service stub ---
+  if [ -f "$SERVICE_FILE" ] && [ -s "$SERVICE_FILE" ]; then
+    echo "    [SKIP] $SERVICE_CLASS already exists"
+  else
+    cat > "$SERVICE_FILE" <<JAVA
+package ${PACKAGE}.service;
+
+import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class ${SERVICE_CLASS} {
+
+    // TODO: implement business logic
+
+}
+JAVA
+    echo "    [OK]   Generated $SERVICE_FILE"
   fi
 
-  # Extract method signatures from the delegate interface
-  METHODS=$(grep -E "^\s+default ResponseEntity" "$DELEGATE_FILE" \
-    | sed 's/default //' \
-    | sed 's/ {$/;/' \
-    || true)
-
-  # Build controller stub
-  cat > "$CONTROLLER_FILE" <<JAVA
+  # --- Controller stub ---
+  if [ -f "$CONTROLLER_FILE" ] && [ -s "$CONTROLLER_FILE" ]; then
+    echo "    [SKIP] $CONTROLLER_CLASS already exists"
+  else
+    SERVICE_FIELD=$(echo "$SERVICE_CLASS" | tr '[:upper:]' '[:lower:]' | cut -c1)$(echo "$SERVICE_CLASS" | cut -c2-)
+    cat > "$CONTROLLER_FILE" <<JAVA
 package ${PACKAGE}.controller;
 
 import ${PACKAGE}.api.${DELEGATE_CLASS};
+import ${PACKAGE}.service.${SERVICE_CLASS};
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
  * Implements {@link ${DELEGATE_CLASS}}.
- * The @RestController and route mappings are handled by the generated ${TAG}ApiController.
- * Edit this class to add your business logic.
+ * Route mappings are handled by the generated ${TAG}ApiController.
  */
 @Component
 @RequiredArgsConstructor
 public class ${CONTROLLER_CLASS} implements ${DELEGATE_CLASS} {
 
-    // TODO: inject your services here
+    private final ${SERVICE_CLASS} ${SERVICE_FIELD};
 
 }
 JAVA
-
-  echo "    [OK] Generated $CONTROLLER_FILE"
+    echo "    [OK]   Generated $CONTROLLER_FILE"
+  fi
 done
 
 echo ""
-echo "==> Done. Stub(s) created in $PACKAGE_PATH/controller/"
-echo "    Next: implement the delegate methods, then run 'mvn spring-boot:run'"
+echo "==> Done. Stubs created in $PACKAGE_PATH/{controller,service}/"
+echo "    Next: implement your business logic, then run 'mvn spring-boot:run'"
