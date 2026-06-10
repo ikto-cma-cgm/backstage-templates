@@ -30,8 +30,6 @@ spec:
   domain: ${{ values.domain }}
   providesApis:
     - ${{ values.existingApiRef }}
-  dependsOn:
-    - api:default/${{ values.apiName }}
 ---
 apiVersion: backstage.io/v1alpha1
 kind: System

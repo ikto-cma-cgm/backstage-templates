@@ -6,11 +6,12 @@ This Golden Path scaffolds a Spring Boot 3 service that **implements an existing
 
 ## What it generates
 
-- **Spring Boot 3 service** with Maven build, PostgreSQL/JPA, Actuator, Liquibase
-- **`openapi-generator-maven-plugin`** configured to fetch the spec from the existing API repo at build time
-- **Delegate implementations** (`HealthController`, `ResourcesController`, `ResourceService`) that the developer fills in
-- **`catalog-info.yaml`** with `providesApis: [<selected-api-entity>]` — creates the visible link in the Catalog graph
-- **Full TechDocs** (4 pages: overview, architecture, API reference, operations runbook)
+- **Spring Boot 3 service** with Maven build, Actuator, Swagger UI
+- **H2 in-memory database** par défaut — aucune infrastructure requise pour démarrer
+- **`openapi-generator-maven-plugin`** configuré pour fetcher la spec depuis le repo API existant au build time
+- **Delegate implementations** (`HealthController`, `ResourcesController`, `ResourceService`) prêtes à implémenter
+- **`catalog-info.yaml`** avec `providesApis: [<selected-api-entity>]` — crée le lien visible dans le Catalog graph
+- **Full TechDocs** (4 pages : overview, architecture, API reference, operations runbook)
 
 ## Composition
 

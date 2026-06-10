@@ -77,11 +77,6 @@ spec:
           type: string
           default: '3.4.2'
           ui:help: 'Version de Spring Boot. Consultez les versions supportées sur spring.io'
-        springCloudVersion:
-          title: Spring Cloud version
-          type: string
-          default: '2024.0.0'
-          ui:help: 'Version de Spring Cloud.'
 
     - title: Repository platform
       required: [repoProvider]
@@ -152,7 +147,6 @@ spec:
           groupId: ${{ parameters.groupId }}
           packageName: ${{ parameters.packageName }}
           springBootVersion: ${{ parameters.springBootVersion }}
-          springCloudVersion: ${{ parameters.springCloudVersion }}
           repoProvider: ${{ parameters.repoProvider }}
           repoOwner: ${{ parameters.repoOwner }}
           gitlabHost: ${{ parameters.gitlabHost }}

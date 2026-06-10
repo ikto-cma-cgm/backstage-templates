@@ -1,25 +1,33 @@
 # Spring Boot Microservice Template
 
-Ce template fournit une base Spring Boot 3 minimaliste avec Maven, Docker et l'intégration Backstage. Il génère un microservice prêt à être déployé avec SonarQube et les bonnes pratiques de monitoring.
+Ce template scaffolde un microservice Spring Boot 3 avec Maven, Docker et l'intégration Backstage.
+
+## Ce qu'il génère
+
+- **Spring Boot 3** avec Maven, Actuator, Swagger UI, Lombok
+- **H2 in-memory** par défaut — aucune infrastructure requise pour démarrer
+- **Spring Data JPA** pour la persistance (schéma créé automatiquement via `ddl-auto: create-drop`)
+- **`catalog-info.yaml`** avec TechDocs, Jenkins et SonarQube pré-configurés
+- **Dockerfile** et **pipeline CI** prêts à l'emploi
 
 ## Comment utiliser
 
-- Via la section **Create** dans Backstage
-- En lançant le template **Spring Boot Microservice**
+Via la section **Create** dans Backstage → **Spring Boot Microservice**.
 
-## Création d'un service
+## Paramètres
 
-### Étape 1 : Métadonnées du service
-- **Service name** : nom unique en kebab-case.
-- **Description** : brève description du service.
-- **Owner** : équipe responsable.
+| Groupe | Paramètres clés |
+|---|---|
+| Service identity | `name`, `description`, `owner` |
+| Catalog placement | `system`, `domain` |
+| Build | `javaVersion`, `groupId`, `packageName`, `springBootVersion` |
+| Repository | `repoProvider`, `repoOwner` |
 
-### Étape 2 : Placement dans le Catalog
-- **System** : System Backstage rattaché.
-- **Domain** : domaine métier.
+## Démarrage du service généré
 
-### Étape 3 : Configuration build
-- **Java version** : 17 ou 21.
-- **Maven Group ID** : identifiant Maven du groupe.
+```bash
+mvn spring-boot:run
+```
 
-Reuillez vos paramètres et cliquez **Create** pour générer votre microservice.
+Démarre sur le port **8080** avec H2 in-memory. Pour connecter une vraie base de données, surcharger `spring.datasource.*` via variables d'environnement ou un profil Spring dédié.
+

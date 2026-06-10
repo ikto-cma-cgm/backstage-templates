@@ -1,16 +1,6 @@
 spring:
-  cloud:
-    kubernetes:
-      reload:
-        enabled: true
-      secrets:
-        paths: "/etc/secrets"
   logging:
     config: classpath:logback.xml
-management:
-  endpoint:
-    restart:
-      enabled: true
 
 ---
 spring:
@@ -20,8 +10,3 @@ spring:
         - local
   logging:
     config: classpath:logback.xml
-  cloud:
-    bus:
-      enabled: false
-    discovery:
-      enabled: false

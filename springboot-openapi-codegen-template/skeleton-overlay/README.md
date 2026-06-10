@@ -8,8 +8,6 @@ This service implements the OpenAPI contract **${{ values.apiName }}** and was s
 
 - Java ${{ values.javaVersion }}
 - Maven 3.9+
-- PostgreSQL (or Docker for local dev)
-- Network access to the OpenAPI spec repository (`${{ values.apiRepoOwner }}/${{ values.apiName }}`)
 
 ## Getting Started
 
@@ -19,26 +17,19 @@ This service implements the OpenAPI contract **${{ values.apiName }}** and was s
 mvn generate-sources
 ```
 
-This fetches the OpenAPI spec from:
+Generates the following into `target/generated-sources/openapi/`:
 
-```
-{%- if values.repoProvider == 'github' %}
-https://raw.githubusercontent.com/${{ values.apiRepoOwner }}/${{ values.apiName }}/main/openapi.yaml
-{%- else %}
-https://${{ values.gitlabHost }}/${{ values.apiRepoOwner }}/${{ values.apiName }}/-/raw/main/openapi.yaml
-{%- endif %}
-```
-
-And generates the following into `target/generated-sources/openapi/`:
-- `${{ values.packageName }}.api.HealthApi` — interface for health endpoints
-- `${{ values.packageName }}.api.ResourcesApi` — interface for resource endpoints
-- `${{ values.packageName }}.api.HealthApiDelegate` — delegate interface (implement this)
-- `${{ values.packageName }}.api.ResourcesApiDelegate` — delegate interface (implement this)
-- `${{ values.packageName }}.api.model.*` — model classes (`Resource`, `ResourceRequest`, `ResourcePage`, `HealthResponse`)
+| Class | Type |
+|---|---|
+| `${{ values.packageName }}.api.HealthApi` | Interface |
+| `${{ values.packageName }}.api.ResourcesApi` | Interface |
+| `${{ values.packageName }}.api.HealthApiDelegate` | Delegate interface — implement this |
+| `${{ values.packageName }}.api.ResourcesApiDelegate` | Delegate interface — implement this |
+| `${{ values.packageName }}.api.model.*` | Models (`Resource`, `ResourceRequest`, `ResourcePage`, `HealthResponse`) |
 
 ### 2. Implement your business logic
 
-The generated controllers (`HealthApiController`, `ResourcesApiController`) delegate to implementations in your source code:
+The generated controllers delegate to your implementations:
 
 | Delegate | Your implementation | Purpose |
 |---|---|---|
@@ -50,25 +41,19 @@ Edit `src/main/java/${{ values.packagePath }}/controller/ResourcesController.jav
 ### 3. Run locally
 
 ```bash
-# With local profile (H2 in-memory DB)
-mvn spring-boot:run -Plocal
-
-# Build Docker image
-docker build -t ${{ values.name }}:local docker/
-
-# Run with Docker Compose
-docker run -p 8080:8080 ${{ values.name }}:local
+mvn spring-boot:run
 ```
 
-## Environment Variables
+The service starts on port **8080** with an H2 in-memory database.  
+H2 console available at `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:${{ values.name }}`).
 
-| Variable | Required | Default | Description |
-|---|:---:|---|---|
-| `SPRING_DATASOURCE_URL` | ✅ | — | JDBC URL for PostgreSQL |
-| `SPRING_DATASOURCE_USERNAME` | ✅ | — | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | ✅ | — | Database password |
-| `PORT` | ❌ | `8080` | HTTP server port |
-| `LOG_LEVEL` | ❌ | `INFO` | Log level (DEBUG, INFO, WARN, ERROR) |
+## Build
+
+```bash
+mvn clean package -DskipTests
+docker build -t ${{ values.name }}:local .
+docker run -p 8080:8080 ${{ values.name }}:local
+```
 
 ## API Endpoints
 
@@ -77,6 +62,15 @@ Endpoints are defined by the contract **${{ values.apiName }}**. After running `
 ```
 http://localhost:8080/swagger-ui.html
 ```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | HTTP server port |
+| `LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARN`, `ERROR`) |
+
+> No database environment variables are required by default. The service uses an **H2 in-memory database** out of the box. To plug in a real database, override `spring.datasource.*` via environment variables or a dedicated Spring profile.
 
 ## Architecture
 
@@ -93,7 +87,7 @@ ResourcesController     ← your code (src/)
 ResourceService         ← business logic
     │
     ▼
-PostgreSQL (via JPA)
+H2 in-memory (default) / external DB via Spring profile
 ```
 
 ## When the spec changes
@@ -102,11 +96,11 @@ PostgreSQL (via JPA)
 mvn generate-sources
 ```
 
-The plugin fetches the latest `openapi.yaml` from the **${{ values.apiName }}** repository. If the spec changed, update your delegate implementations accordingly.
+The plugin re-fetches `openapi.yaml` from the **${{ values.apiName }}** repository. Update your delegate implementations if the contract changed.
 
 ## Catalog
 
-This service is visible in the Backstage Catalog as a **Component** and is linked to the **${{ values.existingApiRef }}** API entity via `providesApis`.
+This service is registered in the Backstage Catalog as a **Component** linked to **${{ values.existingApiRef }}** via `providesApis`.
 
 - Component: [${{ values.name }}](https://${{ values.repoProvider }}.com/${{ values.repoOwner }}/${{ values.name }})
 - Provides API: ${{ values.existingApiRef }}
@@ -114,3 +108,4 @@ This service is visible in the Backstage Catalog as a **Component** and is linke
 ## Owner
 
 Team: **${{ values.owner }}** — System: **${{ values.system }}** — Domain: **${{ values.domain }}**
+
