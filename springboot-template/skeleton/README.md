@@ -18,11 +18,9 @@ mvn spring-boot:run -Plocal
 
 ## Build Docker
 
-Le Dockerfile se trouve dans `docker/`. Builder depuis la **racine du projet** :
-
 ```bash
 mvn clean package -DskipTests
-docker build -f docker/Dockerfile -t ${{ values.name }}:local .
+docker build -t ${{ values.name }}:local .
 ```
 
 ## Monitoring
