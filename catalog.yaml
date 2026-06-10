@@ -8,12 +8,9 @@ spec:
   targets:
     # Unitaires
     - ./node-template/template.yaml
-    - ./node-service-template/template.yaml
-    - ./node-swagger-service-template/template.yaml
     - ./springboot-template/template.yaml
     - ./springboot-liquibase-template/template.yaml
     - ./swagger-template/template.yaml
     # Composites
-    - ./node-swagger-composition-template/template.yaml
     - ./springboot-liquibase-composition-template/template.yaml
-    - ./springboot-api-bundle-template/template.yaml
+    - ./springboot-openapi-codegen-template/template.yaml

@@ -1,7 +1,0 @@
-spring:
-  config:
-    activate:
-      on-profile:
-        - local
-  logging:
-    config: classpath:logback.xml

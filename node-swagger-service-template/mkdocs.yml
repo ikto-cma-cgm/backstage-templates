@@ -1,8 +1,0 @@
-site_name: Node.js from OpenAPI Template
-site_description: Scaffolds a Node.js microservice with API code generated from an OpenAPI specification
-
-nav:
-  - Introduction: index.md
-
-plugins:
-  - techdocs-core
