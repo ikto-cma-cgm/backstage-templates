@@ -176,11 +176,22 @@ spec:
           repoOwner: ${{ parameters.repoOwner }}
           gitlabHost: ${{ parameters.gitlabHost }}
 
-    - id: fetch-api-spec
-      name: Download OpenAPI spec into repository
+    - id: fetch-api-spec-github
+      name: Download OpenAPI spec (GitHub)
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: fetch:github:file
+      input:
+        path: openapi.yaml
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.existingApiRef | replace('api:default/', '') | replace('api:', '') }}
+        branch: main
+        targetPath: src/main/resources/api/openapi.yaml
+
+    - id: fetch-api-spec-gitlab
+      name: Download OpenAPI spec (GitLab)
+      if: ${{ parameters.repoProvider === 'gitlab' }}
       action: fetch:plain:file
       input:
-        url: ${{ 'https://raw.githubusercontent.com/' + (parameters.repoOwner) + '/' + (parameters.existingApiRef | replace('api:default/', '') | replace('api:', '')) + '/main/openapi.yaml' if parameters.repoProvider === 'github' else 'https://' + parameters.gitlabHost + '/' + parameters.repoOwner + '/' + (parameters.existingApiRef | replace('api:default/', '') | replace('api:', '')) + '/-/raw/main/openapi.yaml' }}
+        url: https://${{ parameters.gitlabHost }}/${{ parameters.repoOwner }}/${{ parameters.existingApiRef | replace('api:default/', '') | replace('api:', '') }}/-/raw/main/openapi.yaml
         targetPath: src/main/resources/api/openapi.yaml
 
     - id: publish-github
