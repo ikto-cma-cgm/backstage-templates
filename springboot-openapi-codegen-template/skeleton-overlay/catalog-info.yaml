@@ -1,0 +1,43 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  tags:
+    - java
+    - backend
+    - openapi
+  links:
+{%- if values.repoProvider == 'github' %}
+    - url: https://github.com/${{ values.repoOwner }}/${{ values.name }}
+      title: Repository
+      icon: github
+{%- else %}
+    - url: https://${{ values.gitlabHost }}/${{ values.repoOwner }}/${{ values.name }}
+      title: Repository
+      icon: gitlab
+{%- endif %}
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+    jenkins.io/job-full-name: cma-cgm/${{ values.name }}/main
+    sonarqube.org/project-key: cma-cgm:${{ values.name }}
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: ${{ values.system }}
+  domain: ${{ values.domain }}
+  providesApis:
+    - ${{ values.existingApiRef }}
+  dependsOn:
+    - api:default/${{ values.apiName }}
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ${{ values.system }}
+  description: System grouping for ${{ values.name }}
+spec:
+  owner: ${{ values.owner }}
+  domain: ${{ values.domain }}

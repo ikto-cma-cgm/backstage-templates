@@ -1,0 +1,6 @@
+site_name: Spring Boot from OpenAPI Spec — Template
+site_description: Golden Path for scaffolding a Spring Boot 3 service from an existing OpenAPI specification entity in the Catalog.
+nav:
+  - Overview: index.md
+plugins:
+  - techdocs-core
