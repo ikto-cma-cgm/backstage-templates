@@ -179,10 +179,11 @@ spec:
     - id: fetch-api-spec-github
       name: Download OpenAPI spec (GitHub)
       if: ${{ parameters.repoProvider === 'github' }}
-      action: fetch:github:file
+      action: cma:github:fetch-file
       input:
-        path: openapi.yaml
-        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.existingApiRef | replace('api:default/', '') | replace('api:', '') }}
+        repoOwner: ${{ parameters.repoOwner }}
+        repoName: ${{ parameters.existingApiRef | replace('api:default/', '') | replace('api:', '') }}
+        filePath: openapi.yaml
         branch: main
         targetPath: src/main/resources/api/openapi.yaml
 
