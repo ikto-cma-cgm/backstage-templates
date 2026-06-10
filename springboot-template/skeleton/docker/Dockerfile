@@ -4,7 +4,9 @@ FROM 333230080375.dkr.ecr.eu-west-1.amazonaws.com/image_factory/openjdk:17-alpin
 {% if values.javaVersion == '21' -%}
 FROM 333230080375.dkr.ecr.eu-west-1.amazonaws.com/image_factory/openjdk:openjdk-21-alpine3.21-amd64
 {%- endif %}
-MAINTAINER cma
+# For local builds: authenticate first with
+#   aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 333230080375.dkr.ecr.eu-west-1.amazonaws.com
+LABEL maintainer="cma"
 
 COPY jar/*.jar /app.jar
 
