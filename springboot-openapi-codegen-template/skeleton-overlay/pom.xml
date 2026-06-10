@@ -191,7 +191,8 @@
                             <generatorName>spring</generatorName>
                             <apiPackage>${{ values.packageName }}.api</apiPackage>
                             <modelPackage>${{ values.packageName }}.api.model</modelPackage>
-                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <generateSupportingFiles>true</generateSupportingFiles>
+                            <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
                             <configOptions>
                                 <interfaceOnly>false</interfaceOnly>
                                 <useSpringBoot3>true</useSpringBoot3>
