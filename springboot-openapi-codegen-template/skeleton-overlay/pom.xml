@@ -188,7 +188,7 @@
                         </goals>
                         <configuration>
 {%- if values.repoProvider == 'github' %}
-                            <inputSpec>https://raw.githubusercontent.com/${{ values.apiRepoOwner }}/${{ values.apiName }}/main/openapi.yaml</inputSpec>
+                            <inputSpec>https://raw.githubusercontent.com/${{ values.apiRepoOwner }}/${{ values.apiName }}/refs/heads/main/openapi.yaml</inputSpec>
 {%- else %}
                             <inputSpec>https://${{ values.gitlabHost }}/${{ values.apiRepoOwner }}/${{ values.apiName }}/-/raw/main/openapi.yaml</inputSpec>
 {%- endif %}
