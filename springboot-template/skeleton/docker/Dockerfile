@@ -1,11 +1,9 @@
 {% if values.javaVersion == '17' -%}
-FROM 333230080375.dkr.ecr.eu-west-1.amazonaws.com/image_factory/openjdk:17-alpine3.18
+FROM eclipse-temurin:17-jre-alpine
 {%- endif %}
 {% if values.javaVersion == '21' -%}
-FROM 333230080375.dkr.ecr.eu-west-1.amazonaws.com/image_factory/openjdk:openjdk-21-alpine3.21-amd64
+FROM eclipse-temurin:21-jre-alpine
 {%- endif %}
-# For local builds: authenticate first with
-#   aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 333230080375.dkr.ecr.eu-west-1.amazonaws.com
 LABEL maintainer="cma"
 
 COPY jar/*.jar /app.jar
