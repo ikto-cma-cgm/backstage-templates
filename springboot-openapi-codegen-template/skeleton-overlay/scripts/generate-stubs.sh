@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # generate-stubs.sh
-# Generates controller and service stubs for every API tag found in the OpenAPI spec.
-# Skips files that already exist — safe to run on every build.
+# Generates controller and service stubs from every *ApiDelegate.java found in the generated API.
+# Skips files that already exist and are non-empty (safe to run on every build).
 #
 # Usage:
 #   ./scripts/generate-stubs.sh              # standalone: runs mvn generate-sources first
@@ -29,6 +29,10 @@ if [ ! -d "$GENERATED_API_DIR" ]; then
   exit 1
 fi
 
+# Remove empty org/openapitools directories left by the generator
+find src/main/java/org -type d -empty -delete 2>/dev/null && rmdir -p src/main/java/org 2>/dev/null || true
+find src/test/java/org -type d -empty -delete 2>/dev/null && rmdir -p src/test/java/org 2>/dev/null || true
+
 DELEGATES=$(find "$GENERATED_API_DIR" -maxdepth 1 -name "*ApiDelegate.java" ! -name "ApiUtil*" 2>/dev/null)
 
 if [ -z "$DELEGATES" ]; then
@@ -39,6 +43,25 @@ fi
 mkdir -p "$PACKAGE_PATH/controller"
 mkdir -p "$PACKAGE_PATH/service"
 
+# Remove .gitkeep placeholders now that real files will be created
+rm -f "$PACKAGE_PATH/controller/.gitkeep" "$PACKAGE_PATH/service/.gitkeep"
+
+# Extract method signatures from a delegate interface.
+# Handles multi-line parameter lists and outputs one signature per line.
+extract_methods() {
+  awk '
+    /^[[:space:]]*default ResponseEntity/ { collecting=1; sig="" }
+    collecting { sig = (sig == "" ? $0 : sig " " $0) }
+    collecting && /\)[[:space:]]*\{/ {
+      sub(/^[[:space:]]*default /, "", sig)
+      sub(/[[:space:]]*\{[[:space:]]*$/, "", sig)
+      gsub(/[[:space:]]+/, " ", sig)
+      print sig
+      collecting = 0
+    }
+  ' "$1"
+}
+
 for DELEGATE_FILE in $DELEGATES; do
   DELEGATE_CLASS=$(basename "$DELEGATE_FILE" .java)
   TAG=$(echo "$DELEGATE_CLASS" | sed 's/ApiDelegate$//')
@@ -46,14 +69,17 @@ for DELEGATE_FILE in $DELEGATES; do
   SERVICE_CLASS="${TAG}Service"
   CONTROLLER_FILE="$PACKAGE_PATH/controller/${CONTROLLER_CLASS}.java"
   SERVICE_FILE="$PACKAGE_PATH/service/${SERVICE_CLASS}.java"
+  SERVICE_FIELD=$(echo "$SERVICE_CLASS" | tr '[:upper:]' '[:lower:]' | cut -c1)$(echo "$SERVICE_CLASS" | cut -c2-)
 
   # --- Service stub ---
   if [ -f "$SERVICE_FILE" ] && [ -s "$SERVICE_FILE" ]; then
     echo "    [SKIP] $SERVICE_CLASS already exists"
   else
-    cat > "$SERVICE_FILE" <<JAVA
+    {
+      cat <<JAVA
 package ${PACKAGE}.service;
 
+import ${PACKAGE}.api.model.*;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
@@ -61,10 +87,22 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ${SERVICE_CLASS} {
 
-    // TODO: implement business logic
-
-}
 JAVA
+      while IFS= read -r method_sig; do
+        METHOD_NAME=$(echo "$method_sig" | grep -oE '\w+\(' | head -1 | tr -d '(')
+        PARAMS=$(echo "$method_sig" | sed 's/[^(]*(//;s/)$//')
+        INNER_TYPE=$(echo "$method_sig" | grep -oE 'ResponseEntity<[A-Za-z]+>' | sed 's/ResponseEntity<//;s/>//')
+        SVC_RETURN="${INNER_TYPE}"
+        [ "$INNER_TYPE" = "Void" ] && SVC_RETURN="void"
+        cat <<JAVA
+    public ${SVC_RETURN} ${METHOD_NAME}(${PARAMS}) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+JAVA
+      done < <(extract_methods "$DELEGATE_FILE")
+      echo "}"
+    } > "$SERVICE_FILE"
     echo "    [OK]   Generated $SERVICE_FILE"
   fi
 
@@ -72,13 +110,15 @@ JAVA
   if [ -f "$CONTROLLER_FILE" ] && [ -s "$CONTROLLER_FILE" ]; then
     echo "    [SKIP] $CONTROLLER_CLASS already exists"
   else
-    SERVICE_FIELD=$(echo "$SERVICE_CLASS" | tr '[:upper:]' '[:lower:]' | cut -c1)$(echo "$SERVICE_CLASS" | cut -c2-)
-    cat > "$CONTROLLER_FILE" <<JAVA
+    {
+      cat <<JAVA
 package ${PACKAGE}.controller;
 
 import ${PACKAGE}.api.${DELEGATE_CLASS};
+import ${PACKAGE}.api.model.*;
 import ${PACKAGE}.service.${SERVICE_CLASS};
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 /**
@@ -91,8 +131,18 @@ public class ${CONTROLLER_CLASS} implements ${DELEGATE_CLASS} {
 
     private final ${SERVICE_CLASS} ${SERVICE_FIELD};
 
-}
 JAVA
+      while IFS= read -r method_sig; do
+        cat <<JAVA
+    @Override
+    public ${method_sig} {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+JAVA
+      done < <(extract_methods "$DELEGATE_FILE")
+      echo "}"
+    } > "$CONTROLLER_FILE"
     echo "    [OK]   Generated $CONTROLLER_FILE"
   fi
 done
