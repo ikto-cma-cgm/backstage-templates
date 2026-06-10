@@ -234,9 +234,8 @@ spec:
           Service **${{ parameters.name }}** créé et lié à la spec **${{ parameters.existingApiRef }}**.
 
           1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
-          2. Génère les stubs : `mvn generate-sources`
-          3. Implémente les delegates dans `src/main/java/` :
-             - `HealthController` → `HealthApiDelegate`
-             - `ResourcesController` → `ResourcesApiDelegate`
-          4. Lance le service : `mvn spring-boot:run -Plocal`
+          2. Génère les stubs : `chmod +x scripts/generate-stubs.sh && ./scripts/generate-stubs.sh`
+             → crée les controllers adaptés aux tags de ta spec dans `src/main/java/`
+          3. Implémente la logique métier dans les controllers générés
+          4. Lance le service : `mvn spring-boot:run`
           5. La relation **providesApis** est visible dans le Catalog : le service pointe vers **${{ parameters.existingApiRef }}**

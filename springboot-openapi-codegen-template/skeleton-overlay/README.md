@@ -11,32 +11,46 @@ This service implements the OpenAPI contract **${{ values.apiName }}** and was s
 
 ## Getting Started
 
-### 1. Generate API stubs
+### 1. Generate stubs from the spec
 
 ```bash
-mvn generate-sources
+chmod +x scripts/generate-stubs.sh
+./scripts/generate-stubs.sh
 ```
 
-Generates the following into `target/generated-sources/openapi/`:
+This script runs `mvn generate-sources` then creates a controller stub for each tag in your OpenAPI spec:
 
-| Class | Type |
-|---|---|
-| `${{ values.packageName }}.api.HealthApi` | Interface |
-| `${{ values.packageName }}.api.ResourcesApi` | Interface |
-| `${{ values.packageName }}.api.HealthApiDelegate` | Delegate interface — implement this |
-| `${{ values.packageName }}.api.ResourcesApiDelegate` | Delegate interface — implement this |
-| `${{ values.packageName }}.api.model.*` | Models (`Resource`, `ResourceRequest`, `ResourcePage`, `HealthResponse`) |
+```
+src/main/java/${{ values.packagePath }}/controller/
+└── <Tag>Controller.java    ← generated stub, implements <Tag>ApiDelegate
+```
+
+The API interfaces and models land in `target/generated-sources/openapi/`:
+
+```
+${{ values.packageName }}.api.
+├── <Tag>Api.java              ← interface
+├── <Tag>ApiDelegate.java      ← implemented by your controller stub
+├── <Tag>ApiController.java    ← generated controller (do not edit)
+└── model/
+    └── <Schema>.java
+```
 
 ### 2. Implement your business logic
 
-The generated controllers delegate to your implementations:
+Edit the generated stub(s) in `src/main/java/${{ values.packagePath }}/controller/` and add your logic:
 
-| Delegate | Your implementation | Purpose |
-|---|---|---|
-| `HealthApiDelegate` | `HealthController` | Returns service health status |
-| `ResourcesApiDelegate` | `ResourcesController` | CRUD on resources |
+```java
+@Component
+@RequiredArgsConstructor
+public class BookingsController implements BookingsApiDelegate {
 
-Edit `src/main/java/${{ values.packagePath }}/controller/ResourcesController.java` and `src/main/java/${{ values.packagePath }}/service/ResourceService.java`.
+    @Override
+    public ResponseEntity<BookingList> listBookings(...) {
+        // your business logic here
+    }
+}
+```
 
 ### 3. Run locally
 
