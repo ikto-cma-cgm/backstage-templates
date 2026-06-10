@@ -1,0 +1,224 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: springboot-api-bundle-template
+  title: Spring Boot API Bundle
+  description: Scaffolds a Spring Boot 3 service with an embedded OpenAPI spec. One repo, two Catalog entities — Component and API.
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - openapi
+    - composition
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le service. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel ce service appartient. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: API specification
+      required: [apiRef]
+      properties:
+        apiRef:
+          title: API entity
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: API
+          ui:help: 'Entité API existante dans le Catalog (créée via le template OpenAPI Specification). Sa spec sera embarquée dans le service.'
+
+    - title: Java configuration
+      required: [packageName]
+      properties:
+        javaVersion:
+          title: Java version
+          type: string
+          enum: ['17', '21']
+          default: '21'
+          ui:help: 'Version Java du projet et de l''image Docker.'
+        javaTool:
+          title: Java Tool
+          type: string
+          default: JAVA_21
+          ui:help: 'Code outil Java utilisé par le pipeline CI.'
+        groupId:
+          title: Maven Group ID
+          type: string
+          default: com.cma
+          ui:help: 'Identifiant Maven du groupe. Ex: com.cma'
+        packageName:
+          title: Java package name
+          type: string
+          default: com.example.service
+          ui:help: 'Package racine pour les classes Java. Ex: com.cma.pricing.api'
+        springBootVersion:
+          title: Spring Boot version
+          type: string
+          default: '3.4.2'
+          ui:help: 'Version de Spring Boot.'
+
+    - title: Repository destination
+      required: [repoProvider, repoOwner]
+      properties:
+        repoProvider:
+          title: Repository provider
+          type: string
+          enum: [github, gitlab]
+          default: github
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation ou namespace propriétaire du repository.'
+      dependencies:
+        repoProvider:
+          oneOf:
+            - properties:
+                repoProvider:
+                  enum: [github]
+            - properties:
+                repoProvider:
+                  enum: [gitlab]
+                gitlabHost:
+                  title: GitLab Host
+                  type: string
+                  default: gitlab.com
+                  ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+              required: [gitlabHost]
+
+  steps:
+    - id: fetch-springboot-skeleton
+      name: Fetch Spring Boot base skeleton
+      action: fetch:template
+      input:
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-template/skeleton?ref=HEAD
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-api-entity
+      name: Fetch API entity from Catalog
+      action: catalog:fetch
+      input:
+        entityRef: ${{ parameters.apiRef }}
+
+    - id: fetch-api-overlay
+      name: Fetch API overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-overlay
+        targetPath: .
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+          apiRef: ${{ parameters.apiRef }}
+          apiEntityName: ${{ parameters.apiRef.split('/')[1] }}
+          apiSpecContent: ${{ steps['fetch-api-entity'].output.entity.spec.definition }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+    - id: register-catalog-github
+      name: Register in catalog (GitHub)
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: register-catalog-gitlab
+      name: Register in catalog (GitLab)
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        url: ${{ steps['register-catalog-github'].output.entityRef || steps['register-catalog-gitlab'].output.entityRef }}
+    text:
+      - title: Next Steps
+        content: |
+          Service **${{ parameters.name }}** scaffoldé avec succès.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Init (une seule fois) : `make init`
+          3. Implémente tes delegates dans `src/main/java/${{ parameters.packageName | replace('.', '/') }}/api/`
+          4. Lance : `make run` → Swagger UI sur `http://localhost:8080/swagger-ui.html`

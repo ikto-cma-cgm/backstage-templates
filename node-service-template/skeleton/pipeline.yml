@@ -1,0 +1,18 @@
+pipelineType: nodejs
+
+nodeVersion: ${{ values.nodeVersion }}
+npmArgs: "--production"
+
+runSonar: true
+runTests: true
+qualityGate: false
+provisioner: docker
+
+sonarProjectMainBranch: "master"
+sonarProjectQualityGate: "CMACGM-Global-Advanced"
+
+provisionFor:
+  - master
+  - develop
+  - feature
+  - hypercare

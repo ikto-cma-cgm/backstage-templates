@@ -1,0 +1,126 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: springboot-liquibase-template
+  title: Spring Boot Liquibase Migrations
+  description: Scaffolds a standalone Liquibase database migration project for CMA CGM services.
+  annotations:
+    simpleicons.org/icon-slug: liquibase
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - liquibase
+    - standalone
+spec:
+  type: library
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-db'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le projet de migrations. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable des scripts de migration et du support.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel rattacher la ressource Liquibase. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier associé au système. Ex: finance, shipping, platform'
+
+    - title: Liquibase configuration
+      required: [dbType, changelogName]
+      properties:
+        dbType:
+          title: Database type
+          type: string
+          enum: [postgresql, oracle]
+          default: postgresql
+          ui:help: 'Type de base de données ciblé par les scripts Liquibase.'
+        changelogName:
+          title: Changelog name
+          type: string
+          ui:help: 'Nom du changelog Liquibase. Ex: MY-APP-DB-SCRIPTS'
+
+    - title: Repository destination
+      required: [repoProvider, repoOwner]
+      properties:
+        repoProvider:
+          title: Repository provider
+          type: string
+          enum: [github, gitlab]
+          default: github
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation ou namespace propriétaire du repository.'
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: gitlab.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+    text:
+      - title: Next Steps
+        content: |
+          Projet Liquibase **${{ parameters.name }}** créé.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Ajoutez vos scripts SQL dans `src/001_scripts/`
+          3. Mettez à jour `src/001_scripts/db-changelog.xml` pour référencer les nouveaux scripts
+          4. Le pipeline CI déploie automatiquement les migrations Liquibase

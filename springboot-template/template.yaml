@@ -1,0 +1,188 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: springboot-template
+  title: Spring Boot Microservice
+  description: Scaffolds a Spring Boot 3 microservice with Maven, Docker, PostgreSQL and Backstage integration.
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - standalone
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le service. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel ce service appartient. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: Build configuration
+      required: [javaVersion, groupId]
+      properties:
+        javaVersion:
+          title: Java version
+          type: string
+          enum: ['17', '21']
+          default: '21'
+          ui:help: 'Version Java du serveur de runtime.'
+        javaTool:
+          title: Java Tool
+          type: string
+          default: 'JAVA_21'
+          ui:help: "Code outil Java pour le pipeline. JAVA_21 pour Java 21, JAVA_17 pour Java 17."
+        groupId:
+          title: Maven Group ID
+          type: string
+          default: 'com.cma'
+          ui:help: 'Identifiant Maven du groupe. Ex: com.cma'
+        packageName:
+          title: Java package name
+          type: string
+          default: 'com.example.service'
+          ui:help: 'Package racine pour les classes Java. Ex: com.cma.pricing'
+        springBootVersion:
+          title: Spring Boot version
+          type: string
+          default: '3.4.2'
+          ui:help: 'Version de Spring Boot. Consultez les versions supportées sur spring.io'
+        springCloudVersion:
+          title: Spring Cloud version
+          type: string
+          default: '2024.0.0'
+          ui:help: 'Version de Spring Cloud.'
+
+    - title: Repository platform
+      required: [repoProvider]
+      properties:
+        repoProvider:
+          title: Publish to
+          type: string
+          enum: ['github', 'gitlab']
+          default: 'github'
+          enumNames:
+            - "GitHub"
+            - "GitLab"
+          ui:help: 'Plateforme de publication du repository (mutuellement exclusif).'
+
+    - title: GitHub Information
+      required: [repoOwner]
+      properties:
+        repoOwner:
+          title: GitHub Owner
+          type: string
+          default: 'ikto-cma-cgm'
+          ui:help: 'Organisation ou utilisateur GitHub propriétaire du repository.'
+      when: ${{ parameters.repoProvider === 'github' }}
+
+    - title: GitLab Information
+      required: [repoOwner, gitlabHost]
+      properties:
+        gitlabHost:
+          title: GitLab Host
+          type: string
+          default: 'gitlab.com'
+          ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+        repoOwner:
+          title: GitLab Namespace
+          type: string
+          ui:help: 'Espace de noms GitLab pour le projet. Ex: pricing-services'
+      when: ${{ parameters.repoProvider === 'gitlab' }}
+
+    - title: Docker configuration
+      properties:
+        dockerImagePrefix:
+          title: Docker Image Prefix
+          type: string
+          default: 'eu.gcr.io/cma-cgm'
+          ui:help: 'Préfixe du registry Docker.'
+
+    - title: Architecture
+      properties:
+        architectureArea:
+          title: Architecture Area
+          type: string
+          ui:help: 'Domaine d''architecture. Ex: finance, shipping, platform'
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+  output:
+    links:
+      - title: Repository
+        url: "${{ parameters.repoProvider === 'github' ? steps['publish-github'].output.remoteUrl : steps['publish-gitlab'].output.remoteUrl }}"
+    text:
+      - title: Next Steps
+        content: |
+          Service **${{ parameters.name }}** créé avec succès.
+          1. Clone : `git clone ${{ parameters.repoProvider === 'github' ? steps['publish-github'].output.remoteUrl : steps['publish-gitlab'].output.remoteUrl }}`
+          2. Installez les dépendances : `mvn clean install`
+          3. Lancez localement : `mvn spring-boot:run -Plocal`
+          4. Le pipeline CI démarre automatiquement au premier push

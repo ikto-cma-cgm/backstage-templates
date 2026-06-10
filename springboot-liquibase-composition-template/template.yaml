@@ -1,0 +1,245 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: springboot-liquibase-composition-template
+  title: Spring Boot Service with Liquibase
+  description: Scaffolds a Spring Boot microservice and Liquibase migrations in one CMA CGM repository.
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - liquibase
+    - composition
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Service name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le microservice et ses migrations associées.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable du service et des migrations de base de données.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel rattacher le service. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier associé au service. Ex: finance, shipping, platform'
+
+    - title: Build configuration
+      required: [javaVersion, javaTool, groupId, packageName, springBootVersion, springCloudVersion]
+      properties:
+        javaVersion:
+          title: Java version
+          type: string
+          enum: ['17', '21']
+          default: '21'
+          ui:help: 'Version Java utilisée par le projet et son image Docker.'
+        javaTool:
+          title: Java Tool
+          type: string
+          default: JAVA_21
+          ui:help: 'Code outil Java utilisé par le pipeline CI.'
+        groupId:
+          title: Maven Group ID
+          type: string
+          default: com.cma
+          ui:help: 'Identifiant Maven du groupe. Ex: com.cma'
+        packageName:
+          title: Java package name
+          type: string
+          default: com.example.service
+          ui:help: 'Package racine pour les classes Java. Ex: com.cma.pricing'
+        springBootVersion:
+          title: Spring Boot version
+          type: string
+          default: '3.4.2'
+          ui:help: 'Version de Spring Boot utilisée dans le parent Maven.'
+        springCloudVersion:
+          title: Spring Cloud version
+          type: string
+          default: '2024.0.0'
+          ui:help: 'Version de Spring Cloud conservée dans les paramètres du template.'
+
+    - title: Database configuration
+      required: [dbType, changelogName]
+      properties:
+        dbType:
+          title: Database type
+          type: string
+          enum: [postgresql, oracle]
+          default: postgresql
+          ui:help: 'Type de base de données ciblé par les migrations Liquibase.'
+        changelogName:
+          title: Changelog name
+          type: string
+          ui:help: 'Nom du changelog Liquibase. Ex: MY-APP-DB-SCRIPTS'
+
+    - title: Repository destination
+      required: [repoProvider, repoOwner]
+      properties:
+        repoProvider:
+          title: Repository provider
+          type: string
+          enum: [github, gitlab]
+          default: github
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation ou namespace propriétaire du repository.'
+      dependencies:
+        repoProvider:
+          oneOf:
+            - properties:
+                repoProvider:
+                  enum: [github]
+            - properties:
+                repoProvider:
+                  enum: [gitlab]
+                gitlabHost:
+                  title: GitLab Host
+                  type: string
+                  default: gitlab.com
+                  ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+              required: [gitlabHost]
+
+  steps:
+    - id: fetch-springboot-skeleton
+      name: Fetch Spring Boot base skeleton
+      action: fetch:template
+      input:
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-template/skeleton?ref=HEAD
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-liquibase-skeleton
+      name: Fetch Liquibase base skeleton
+      action: fetch:template
+      input:
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-liquibase-template/skeleton?ref=HEAD
+        targetPath: ./db
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-app-overlay
+      name: Fetch application overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-overlay
+        targetPath: .
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          springCloudVersion: ${{ parameters.springCloudVersion }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: fetch-liquibase-overlay
+      name: Fetch Liquibase overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-liquibase-overlay
+        targetPath: ./db
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          dbType: ${{ parameters.dbType }}
+          changelogName: ${{ parameters.changelogName }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+    text:
+      - title: Next Steps
+        content: |
+          Projet composite **${{ parameters.name }}** créé.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Lancez le service avec `mvn spring-boot:run -Plocal`
+          3. Ajoutez les migrations dans `db/src/001_scripts/`
+          4. Le pipeline CI construit l'application et package les assets de déploiement

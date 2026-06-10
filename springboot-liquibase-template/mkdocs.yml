@@ -1,0 +1,7 @@
+site_name: springboot-liquibase-template
+site_description: Scaffolds a Liquibase database migration project for CMA CGM services.
+docs_dir: docs
+nav:
+  - Overview: index.md
+plugins:
+  - techdocs-core

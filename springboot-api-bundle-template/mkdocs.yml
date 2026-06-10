@@ -1,0 +1,6 @@
+site_name: Spring Boot API Bundle Template
+site_description: Scaffolds a Spring Boot 3 service with an embedded OpenAPI spec — one repo, two Catalog entities.
+nav:
+  - Overview: index.md
+plugins:
+  - techdocs-core

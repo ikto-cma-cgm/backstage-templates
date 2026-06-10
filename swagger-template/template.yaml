@@ -1,0 +1,190 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: swagger-template
+  title: OpenAPI Specification
+  description: Scaffolds a standalone OpenAPI 3.0 specification repository with Backstage API catalog integration.
+  annotations:
+    simpleicons.org/icon-slug: swagger
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - openapi
+    - standalone
+spec:
+  type: library
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: API identity
+      required: [name, description, owner]
+      properties:
+        name:
+          title: API name
+          type: string
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          ui:help: 'Kebab-case, unique dans le Catalog. Ex: quote-pricing-api'
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant l''API. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage auquel cette API appartient. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: HIP metadata
+      ui:autofocus: apiType
+      properties:
+        apiType:
+          title: API type
+          type: string
+          enum: [system, business, experience]
+          default: system
+          ui:enumNames:
+            - System (core asset API)
+            - Business (orchestration API)
+            - Experience (consumer-facing API)
+          ui:help: 'HIP API-led connectivity tier. Default: system.'
+        hopexComponentCode:
+          title: HOPEX component code
+          type: string
+          pattern: '^$|^CP\d+$'
+          ui:help: 'HOPEX Enterprise Architecture component code. Ex: CP00141. Optional — leave blank to omit.'
+        apiLead:
+          title: API Lead
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Business owner group for this API. Default: same as owner.'
+        apiFactory:
+          title: API Factory
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Group that builds this API. Default: same as owner.'
+        apiDomainArchitectural:
+          title: Architectural domain
+          type: string
+          ui:help: 'HIP architectural domain (x-domain extension). Default: same as Domain.'
+
+    - title: Repository destination
+      required: [repoProvider, repoOwner]
+      properties:
+        repoProvider:
+          title: Repository provider
+          type: string
+          enum: [github, gitlab]
+          default: github
+          ui:help: 'Plateforme cible pour publier le repository généré.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation ou namespace propriétaire du repository.'
+      dependencies:
+        repoProvider:
+          oneOf:
+            - properties:
+                repoProvider:
+                  enum: [github]
+            - properties:
+                repoProvider:
+                  enum: [gitlab]
+                gitlabHost:
+                  title: GitLab Host
+                  type: string
+                  default: gitlab.com
+                  ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+              required: [gitlabHost]
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          apiType: ${{ parameters.apiType }}
+          hopexComponentCode: ${{ parameters.hopexComponentCode }}
+          apiLead: ${{ parameters.apiLead }}
+          apiFactory: ${{ parameters.apiFactory }}
+          apiDomainArchitectural: ${{ parameters.apiDomainArchitectural }}
+          repoProvider: ${{ parameters.repoProvider }}
+          repoOwner: ${{ parameters.repoOwner }}
+          gitlabHost: ${{ parameters.gitlabHost }}
+
+    - id: publish-github
+      name: Publish on GitHub
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+
+    - id: publish-gitlab
+      name: Publish on GitLab
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+
+    - id: register-catalog-github
+      name: Register in catalog (GitHub)
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: register-catalog-gitlab
+      name: Register in catalog (GitLab)
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        url: ${{ steps['register-catalog-github'].output.entityRef || steps['register-catalog-gitlab'].output.entityRef }}
+    text:
+      - title: Next Steps
+        content: |
+          Spécification OpenAPI **${{ parameters.name }}** créée et enregistrée dans le Catalog.
+          1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
+          2. Éditez `openapi.yaml` pour définir votre contrat API
+          3. L'entité API **${{ parameters.name }}** est visible dans le Catalog
+          4. Pour générer un service depuis cette spec, utilisez le template **Spring Boot with OpenAPI Spec** ou **Node.js with OpenAPI Spec** en renseignant :
+             - **OpenAPI spec URL** : URL raw vers `openapi.yaml` dans ce repo
+             - **Existing API entity reference** : `${{ parameters.name }}`
