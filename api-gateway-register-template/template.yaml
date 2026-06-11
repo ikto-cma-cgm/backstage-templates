@@ -30,6 +30,11 @@ spec:
           title: Upstream URL
           type: string
           ui:help: 'Real upstream URL of the deployed service (e.g. http://my-service:8080). Leave empty to use the default convention: http://{name}:8080.'
+        localDev:
+          title: Local dev mode
+          type: boolean
+          default: false
+          ui:help: "Upstream automatiquement réglé sur host.docker.internal:8080 — à cocher quand le service tourne sur la machine hôte (pas dans Docker)."
 
   steps:
     - id: register-kong
@@ -38,6 +43,7 @@ spec:
       input:
         serviceName: ${{ parameters.component | replace('component:default/', '') | replace('component:', '') }}
         upstreamUrl: ${{ parameters.upstreamUrl if parameters.upstreamUrl else '' }}
+        localDev: ${{ parameters.localDev }}
 
   output:
     links:

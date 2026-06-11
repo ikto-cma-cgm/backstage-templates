@@ -95,10 +95,15 @@ spec:
           type: boolean
           default: false
           ui:help: 'Enregistre ce service sur Kong (idempotent — peut être rejoué après déploiement).'
+        localDev:
+          title: Local dev mode
+          type: boolean
+          default: false
+          ui:help: "Upstream automatiquement réglé sur host.docker.internal:8080 — à cocher quand le service tourne sur la machine hôte (pas dans Docker)."
         kongUpstreamUrl:
           title: Upstream URL (override)
           type: string
-          ui:help: 'URL interne du service. Défaut : http://{name}:8080'
+          ui:help: 'URL interne du service. Défaut : http://{name}:8080 (ou host.docker.internal:8080 si Local dev mode coché).'
         kongRoutePath:
           title: Route path (override)
           type: string
@@ -173,6 +178,7 @@ spec:
         serviceName: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
         upstreamUrl: ${{ parameters.kongUpstreamUrl }}
         routePath: ${{ parameters.kongRoutePath or '/api/' + (parameters.existingApiRef | replace("api:default/", "") | replace("api:", "")) }}
+        localDev: ${{ parameters.localDev }}
 
     - id: open-pr
       name: Open Pull Request with implementation
