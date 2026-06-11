@@ -1,0 +1,67 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: api-gateway-register-template
+  title: Register Service on Kong API Gateway
+  description: Registers an already-deployed service on Kong API Gateway — creates or updates a Kong Service and Route. Use after the service is running.
+  annotations:
+    simpleicons.org/icon-slug: kong
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - action
+    - kong
+    - platform
+spec:
+  type: action
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service to register
+      required: [component]
+      properties:
+        component:
+          title: Component
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Component
+          ui:help: 'Backstage Component to register on Kong. The service must already be deployed and reachable.'
+        upstreamUrl:
+          title: Upstream URL
+          type: string
+          ui:help: 'Real upstream URL of the deployed service (e.g. http://my-service:8080). Leave empty to use the default convention: http://{name}:8080.'
+
+  steps:
+    - id: register-kong
+      name: Register on Kong API Gateway
+      action: cma:kong:register-service
+      input:
+        serviceName: ${{ parameters.component | replace('component:default/', '') | replace('component:', '') }}
+        upstreamUrl: ${{ parameters.upstreamUrl if parameters.upstreamUrl else '' }}
+
+  output:
+    links:
+      - title: Kong Admin — Services
+        url: http://localhost:8001/services
+        icon: dashboard
+    text:
+      - title: Registration Summary
+        content: |
+          Service **${{ parameters.component }}** registered on Kong API Gateway.
+
+          | Field | Value |
+          |---|---|
+          | Kong Service | `${{ steps['register-kong'].output.kongServiceName }}` |
+          | Route | `${{ steps['register-kong'].output.kongRoutePath }}/*` |
+
+          **Test via Kong proxy:**
+          ```bash
+          curl http://localhost:8000${{ steps['register-kong'].output.kongRoutePath }}/actuator/health
+          ```
+
+          **Update upstream after a new deployment:**
+          ```bash
+          curl -X PATCH http://localhost:8001/services/${{ steps['register-kong'].output.kongServiceName }} \
+            -H "Content-Type: application/json" \
+            -d '{"url": "http://<real-host>:<port>"}'
+          ```

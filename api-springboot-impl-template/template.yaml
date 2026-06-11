@@ -1,0 +1,213 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: api-springboot-impl-template
+  title: Implement API — Spring Boot
+  description: Ouvre une Pull Request sur le repository du contrat API pour y ajouter l'implémentation Spring Boot 3. Spec et implémentation cohabitent dans le même repo.
+  annotations:
+    simpleicons.org/icon-slug: springboot
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - application
+    - java
+    - openapi
+    - composition
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: API Contract
+      required: [existingApiRef, repoOwner]
+      properties:
+        existingApiRef:
+          title: OpenAPI Specification
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: API
+                spec.type: openapi
+          ui:help: 'Contrat API existant (créé via api-contract-template) à implémenter.'
+        repoOwner:
+          title: Repository owner
+          type: string
+          default: ikto-cma-cgm
+          ui:help: 'Organisation GitHub propriétaire du repository de la spec.'
+
+    - title: Service identity
+      required: [description, owner]
+      properties:
+        description:
+          title: Description
+          type: string
+          ui:help: 'Une phrase décrivant le service. Apparaîtra dans le Catalog.'
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+          ui:help: 'Équipe responsable.'
+
+    - title: Catalog placement
+      required: [system, domain]
+      properties:
+        system:
+          title: System
+          type: string
+          ui:help: 'System Backstage. Ex: pricing'
+        domain:
+          title: Domain
+          type: string
+          ui:help: 'Domain métier. Ex: finance, shipping, platform'
+
+    - title: Build configuration
+      required: [javaVersion, groupId]
+      properties:
+        javaVersion:
+          title: Java version
+          type: string
+          enum: ['17', '21']
+          default: '21'
+        javaTool:
+          title: Java Tool
+          type: string
+          default: 'JAVA_21'
+        groupId:
+          title: Maven Group ID
+          type: string
+          default: 'com.cma'
+        packageName:
+          title: Java package name
+          type: string
+          default: 'com.example.service'
+          ui:help: 'Package racine. Ex: com.cma.pricing'
+        springBootVersion:
+          title: Spring Boot version
+          type: string
+          default: '3.4.2'
+
+    - title: API Gateway
+      properties:
+        registerOnKong:
+          title: Register on Kong API Gateway
+          type: boolean
+          default: false
+          ui:help: 'Enregistre ce service sur Kong (idempotent — peut être rejoué après déploiement).'
+        kongUpstreamUrl:
+          title: Upstream URL (override)
+          type: string
+          ui:help: 'URL interne du service. Défaut : http://{name}:8080'
+        kongRoutePath:
+          title: Route path (override)
+          type: string
+          ui:help: 'Chemin exposé via Kong. Défaut : /api/{name}'
+
+  steps:
+    - id: fetch-springboot-skeleton
+      name: Fetch Spring Boot base skeleton
+      action: fetch:template
+      input:
+        url: https://github.com/ikto-cma-cgm/backstage-templates/tree/main/springboot-template/skeleton?ref=v0.1.0
+        values:
+          name: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          repoProvider: github
+          repoOwner: ${{ parameters.repoOwner }}
+
+    - id: fetch-overlay
+      name: Fetch Spring Boot overlay
+      action: fetch:template
+      input:
+        url: ./skeleton-overlay
+        targetPath: .
+        replace: true
+        values:
+          name: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          domain: ${{ parameters.domain }}
+          javaVersion: ${{ parameters.javaVersion }}
+          javaTool: ${{ parameters.javaTool }}
+          groupId: ${{ parameters.groupId }}
+          packageName: ${{ parameters.packageName }}
+          packagePath: ${{ parameters.packageName | replace('.', '/') }}
+          springBootVersion: ${{ parameters.springBootVersion }}
+          repoOwner: ${{ parameters.repoOwner }}
+          registerOnKong: ${{ parameters.registerOnKong }}
+          kongRoutePath: ${{ parameters.kongRoutePath or '/api/' + (parameters.existingApiRef | replace("api:default/", "") | replace("api:", "")) }}
+
+    - id: cleanup-example-files
+      name: Remove example placeholder files
+      action: fs:delete
+      input:
+        files:
+          - src/main/java/com/example/service/controller/HealthController.java
+          - src/main/java/com/example/service/model/Example.java
+          - src/main/java/com/example/service/service/ExampleService.java
+
+    - id: cleanup-base-application
+      name: Remove base Application.java when using custom package
+      if: ${{ parameters.packageName !== 'com.example.service' }}
+      action: fs:delete
+      input:
+        files:
+          - src/main/java/com/example/service/Application.java
+
+    - id: register-kong
+      name: Register on Kong API Gateway
+      if: ${{ parameters.registerOnKong }}
+      action: cma:kong:register-service
+      input:
+        serviceName: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+        upstreamUrl: ${{ parameters.kongUpstreamUrl }}
+        routePath: ${{ parameters.kongRoutePath or '/api/' + (parameters.existingApiRef | replace("api:default/", "") | replace("api:", "")) }}
+
+    - id: open-pr
+      name: Open Pull Request with implementation
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+        branchName: feat/springboot-implementation
+        title: "feat: add Spring Boot implementation"
+        description: |
+          Adds Spring Boot ${{ parameters.springBootVersion }} implementation for the `${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}` API.
+
+          **What's included:**
+          - Spring Boot ${{ parameters.springBootVersion }} with OpenAPI Generator
+          - Server stubs generated from `openapi.yaml` at repo root (`mvn install`)
+          - Updated `catalog-info.yaml` — adds `kind: Component` alongside existing `kind: API`
+          ${{ parameters.registerOnKong and '- Service registered on Kong at `' + (parameters.kongRoutePath or '/api/' + (parameters.existingApiRef | replace("api:default/", "") | replace("api:", ""))) + '`' or '' }}
+
+          **Next steps after merge:**
+          1. `mvn install` — génère les stubs
+          2. Implémente la logique métier dans `src/main/java/`
+          3. `mvn spring-boot:run`
+
+          _Generated by **api-springboot-impl-template**_
+
+  output:
+    links:
+      - title: Pull Request
+        url: ${{ steps['open-pr'].output.remoteUrl }}
+        icon: github
+    text:
+      - title: Next Steps
+        content: |
+          Pull Request ouverte sur **${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}**.
+
+          1. Revoir et merger la PR : ${{ steps['open-pr'].output.remoteUrl }}
+          2. Backstage rafraîchira automatiquement le catalog — l'entité **Component** apparaîtra aux côtés de l'entité **API**
+          3. Après merge : `mvn install` → `mvn spring-boot:run`
+          ${{ parameters.registerOnKong and '4. Service enregistré sur Kong — proxy actif à `' + (parameters.kongRoutePath or '/api/' + (parameters.existingApiRef | replace("api:default/", "") | replace("api:", ""))) + '` dès que le service est déployé' or '' }}

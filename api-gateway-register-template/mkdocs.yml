@@ -1,0 +1,7 @@
+site_name: Register Service on Kong API Gateway
+site_description: Template documentation — registers a deployed service on Kong API Gateway
+docs_dir: docs
+nav:
+  - Overview: index.md
+plugins:
+  - techdocs-core

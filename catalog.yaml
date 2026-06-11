@@ -10,7 +10,10 @@ spec:
     - ./node-template/template.yaml
     - ./springboot-template/template.yaml
     - ./springboot-liquibase-template/template.yaml
-    - ./swagger-template/template.yaml
+    # API-first
+    - ./api-contract-template/template.yaml
+    - ./api-springboot-impl-template/template.yaml
     # Composites
     - ./springboot-liquibase-composition-template/template.yaml
-    - ./springboot-openapi-codegen-template/template.yaml
+    # Platform
+    - ./api-gateway-register-template/template.yaml

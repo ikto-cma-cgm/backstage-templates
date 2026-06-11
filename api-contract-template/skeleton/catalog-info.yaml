@@ -15,8 +15,17 @@ metadata:
       title: Repository
       icon: gitlab
 {%- endif %}
+{%- if values.exposeViaKong %}
+    - url: http://localhost:8000${{ values.kongRoutePath }}
+      title: Kong Proxy URL
+      icon: web
+{%- endif %}
   annotations:
     backstage.io/techdocs-ref: dir:.
+{%- if values.exposeViaKong %}
+    kong.io/service-name: ${{ values.name }}
+    kong.io/route-path: ${{ values.kongRoutePath }}
+{%- endif %}
     cma-cgm.com/api-type: ${{ values.apiType }}
     {%- if values.hopexComponentCode %}
     cma-cgm.com/hopex-code: ${{ values.hopexComponentCode }}

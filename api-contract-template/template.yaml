@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: swagger-template
-  title: OpenAPI Specification
+  name: api-contract-template
+  title: API Contract
   description: Scaffolds a standalone OpenAPI 3.0 specification repository with Backstage API catalog integration.
   annotations:
     simpleicons.org/icon-slug: swagger
@@ -87,6 +87,18 @@ spec:
           type: string
           ui:help: 'HIP architectural domain (x-domain extension). Default: same as Domain.'
 
+    - title: API Gateway
+      properties:
+        exposeViaKong:
+          title: Expose via Kong API Gateway
+          type: boolean
+          default: false
+          ui:help: 'Déclare que cette API sera exposée via Kong. Les annotations sont ajoutées à l''entité — l''enregistrement effectif se fait via le template de service.'
+        kongRoutePath:
+          title: Route path (override)
+          type: string
+          ui:help: 'Chemin Kong prévu. Défaut : /api/{name}'
+
     - title: Repository destination
       required: [repoProvider, repoOwner]
       properties:
@@ -137,6 +149,8 @@ spec:
           repoProvider: ${{ parameters.repoProvider }}
           repoOwner: ${{ parameters.repoOwner }}
           gitlabHost: ${{ parameters.gitlabHost }}
+          exposeViaKong: ${{ parameters.exposeViaKong }}
+          kongRoutePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
 
     - id: publish-github
       name: Publish on GitHub
@@ -162,6 +176,7 @@ spec:
       input:
         repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
         catalogInfoPath: /catalog-info.yaml
+        optional: true
 
     - id: register-catalog-gitlab
       name: Register in catalog (GitLab)
@@ -170,6 +185,7 @@ spec:
       input:
         repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
         catalogInfoPath: /catalog-info.yaml
+        optional: true
 
   output:
     links:
@@ -185,6 +201,5 @@ spec:
           1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
           2. Éditez `openapi.yaml` pour définir votre contrat API
           3. L'entité API **${{ parameters.name }}** est visible dans le Catalog
-          4. Pour générer un service depuis cette spec, utilisez le template **Spring Boot with OpenAPI Spec** ou **Node.js with OpenAPI Spec** en renseignant :
-             - **OpenAPI spec URL** : URL raw vers `openapi.yaml` dans ce repo
-             - **Existing API entity reference** : `${{ parameters.name }}`
+          4. Pour générer un service depuis cette spec, utilisez le template **Spring Boot with OpenAPI Spec** en renseignant **Existing API entity reference** : `${{ parameters.name }}`
+          ${{ parameters.exposeViaKong and '5. API enregistrée sur Kong — route proxy : `' + (parameters.kongRoutePath or '/api/' + parameters.name) + '` (upstream actif dès qu''un service répond sur cette adresse)' or '' }}
