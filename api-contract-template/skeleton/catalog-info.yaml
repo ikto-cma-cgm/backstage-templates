@@ -22,26 +22,16 @@ metadata:
 {%- endif %}
   annotations:
     backstage.io/techdocs-ref: dir:.
-{%- if values.exposeViaKong %}
-    kong.io/service-name: ${{ values.name }}
-    kong.io/route-path: ${{ values.kongRoutePath }}
-{%- endif %}
     cma-cgm.com/api-type: ${{ values.apiType }}
     {%- if values.hopexComponentCode %}
     cma-cgm.com/hopex-code: ${{ values.hopexComponentCode }}
     {%- endif %}
-    {%- if values.apiLead %}
-    cma-cgm.com/api-lead: ${{ values.apiLead }}
-    {%- endif %}
-    {%- if values.apiFactory %}
-    cma-cgm.com/api-factory: ${{ values.apiFactory }}
-    {%- endif %}
-    {%- if values.apiDomainArchitectural %}
-    cma-cgm.com/x-domain: ${{ values.apiDomainArchitectural }}
-    {%- endif %}
-    {%- if values.domain %}
-    cma-cgm.com/domain: ${{ values.domain }}
-    {%- endif %}
+{%- if values.exposeViaKong %}
+    kong.io/service-name: ${{ values.name }}
+    kong.io/route-path: ${{ values.kongRoutePath }}
+    hip.io/access-scopes: ${{ values.accessScopes }}
+    hip.io/auto-approve-scopes: ${{ values.autoApproveScopes }}
+{%- endif %}
 spec:
   type: openapi
   lifecycle: experimental

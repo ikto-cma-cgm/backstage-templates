@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: api-contract-template
   title: API Contract
-  description: Scaffolds a standalone OpenAPI 3.0 specification repository with Backstage API catalog integration.
+  description: Crée le repo OpenAPI 3.0, enregistre l'API dans le Catalog et l'expose sur Kong (optionnel).
   annotations:
     simpleicons.org/icon-slug: swagger
     backstage.io/techdocs-ref: dir:.
@@ -34,9 +34,9 @@ spec:
           ui:options:
             catalogFilter:
               - kind: Group
-          ui:help: 'Équipe responsable. Sera paginée en cas d''incident.'
+          ui:help: 'Équipe responsable.'
 
-    - title: Catalog placement
+    - title: Catalog
       required: [system, domain]
       properties:
         system:
@@ -47,10 +47,6 @@ spec:
           title: Domain
           type: string
           ui:help: 'Domain métier. Ex: finance, shipping, platform'
-
-    - title: HIP metadata
-      ui:autofocus: apiType
-      properties:
         apiType:
           title: API type
           type: string
@@ -60,59 +56,45 @@ spec:
             - System (core asset API)
             - Business (orchestration API)
             - Experience (consumer-facing API)
-          ui:help: 'HIP API-led connectivity tier. Default: system.'
+          ui:help: 'HIP API-led connectivity tier.'
         hopexComponentCode:
-          title: HOPEX component code
+          title: HOPEX code (optionnel)
           type: string
           pattern: '^$|^CP\d+$'
-          ui:help: 'HOPEX Enterprise Architecture component code. Ex: CP00141. Optional — leave blank to omit.'
-        apiLead:
-          title: API Lead
-          type: string
-          ui:field: EntityPicker
-          ui:options:
-            catalogFilter:
-              - kind: Group
-          ui:help: 'Business owner group for this API. Default: same as owner.'
-        apiFactory:
-          title: API Factory
-          type: string
-          ui:field: EntityPicker
-          ui:options:
-            catalogFilter:
-              - kind: Group
-          ui:help: 'Group that builds this API. Default: same as owner.'
-        apiDomainArchitectural:
-          title: Architectural domain
-          type: string
-          ui:help: 'HIP architectural domain (x-domain extension). Default: same as Domain.'
+          ui:help: 'Ex: CP00141. Laisser vide si inconnu.'
 
-    - title: API Gateway
+    - title: Gateway & Access Control
       properties:
         exposeViaKong:
-          title: Expose via Kong API Gateway
+          title: Exposer via Kong API Gateway
           type: boolean
           default: false
-          ui:help: 'Déclare que cette API sera exposée via Kong. Les annotations sont ajoutées à l''entité — l''enregistrement effectif se fait via le template de service.'
+          ui:help: 'Crée la route Kong et protège l''API par défaut. L''upstream est un placeholder — à mettre à jour après le déploiement via "Update Kong Upstream".'
         kongRoutePath:
-          title: Route path (override)
+          title: Route path (optionnel)
           type: string
-          ui:help: 'Chemin Kong prévu. Défaut : /api/{name}'
+          ui:help: 'Défaut : /api/{name}'
+        accessScopes:
+          title: Scopes d''accès (optionnel)
+          type: string
+          ui:help: 'Scopes disponibles, séparés par des virgules. Défaut si vide : {name}:read et {name}:write.'
+        autoApproveScopes:
+          title: Scopes auto-approuvés (optionnel)
+          type: string
+          ui:help: 'Scopes accordés immédiatement sans approbation. Défaut si vide : {name}:read.'
 
-    - title: Repository destination
+    - title: Repository
       required: [repoProvider, repoOwner]
       properties:
         repoProvider:
-          title: Repository provider
+          title: Provider
           type: string
           enum: [github, gitlab]
           default: github
-          ui:help: 'Plateforme cible pour publier le repository généré.'
         repoOwner:
-          title: Repository owner
+          title: Owner
           type: string
           default: ikto-cma-cgm
-          ui:help: 'Organisation ou namespace propriétaire du repository.'
       dependencies:
         repoProvider:
           oneOf:
@@ -126,7 +108,7 @@ spec:
                   title: GitLab Host
                   type: string
                   default: gitlab.com
-                  ui:help: 'Hôte GitLab. Ex: gitlab.com ou gitlab.cma-cgm.com'
+                  ui:help: 'Ex: gitlab.com ou gitlab.cma-cgm.com'
               required: [gitlabHost]
 
   steps:
@@ -141,16 +123,15 @@ spec:
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           domain: ${{ parameters.domain }}
-          apiType: ${{ parameters.apiType }}
+          apiType: ${{ parameters.apiType or 'system' }}
           hopexComponentCode: ${{ parameters.hopexComponentCode }}
-          apiLead: ${{ parameters.apiLead }}
-          apiFactory: ${{ parameters.apiFactory }}
-          apiDomainArchitectural: ${{ parameters.apiDomainArchitectural }}
           repoProvider: ${{ parameters.repoProvider }}
           repoOwner: ${{ parameters.repoOwner }}
           gitlabHost: ${{ parameters.gitlabHost }}
           exposeViaKong: ${{ parameters.exposeViaKong }}
           kongRoutePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
+          accessScopes: ${{ parameters.accessScopes or parameters.name + ':read,' + parameters.name + ':write' }}
+          autoApproveScopes: ${{ parameters.autoApproveScopes or parameters.name + ':read' }}
 
     - id: publish-github
       name: Publish on GitHub
@@ -168,6 +149,14 @@ spec:
         repoUrl: ${{ parameters.gitlabHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.name }}
         defaultBranch: main
         description: ${{ parameters.description }}
+
+    - id: register-kong
+      name: Register on Kong API Gateway
+      if: ${{ parameters.exposeViaKong }}
+      action: cma:kong:register-service
+      input:
+        serviceName: ${{ parameters.name }}
+        routePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
 
     - id: register-catalog-github
       name: Register in catalog (GitHub)
@@ -198,8 +187,8 @@ spec:
       - title: Next Steps
         content: |
           Spécification OpenAPI **${{ parameters.name }}** créée et enregistrée dans le Catalog.
+
           1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
           2. Éditez `openapi.yaml` pour définir votre contrat API
-          3. L'entité API **${{ parameters.name }}** est visible dans le Catalog
-          4. Pour générer un service depuis cette spec, utilisez le template **Spring Boot with OpenAPI Spec** en renseignant **Existing API entity reference** : `${{ parameters.name }}`
-          ${{ parameters.exposeViaKong and '5. API enregistrée sur Kong — route proxy : `' + (parameters.kongRoutePath or '/api/' + parameters.name) + '` (upstream actif dès qu''un service répond sur cette adresse)' or '' }}
+          3. Pour générer le service Spring Boot : template **Implement API — Spring Boot** → sélectionnez `${{ parameters.name }}`
+          ${{ parameters.exposeViaKong and '4. Route Kong active : `' + (parameters.kongRoutePath or '/api/' + parameters.name) + '` — protégée par défaut. Upstream : `http://' + parameters.name + ':8080`.' or '' }}

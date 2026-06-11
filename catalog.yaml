@@ -15,5 +15,3 @@ spec:
     - ./api-springboot-impl-template/template.yaml
     # Composites
     - ./springboot-liquibase-composition-template/template.yaml
-    # Platform
-    - ./api-gateway-register-template/template.yaml
