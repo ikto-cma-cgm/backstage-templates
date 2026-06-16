@@ -1,0 +1,65 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: kong-service-template
+  title: Register Service on Kong
+  description: Enregistre un service existant sur Kong API Gateway — crée la route, active key-auth et le groupe ACL.
+  annotations:
+    simpleicons.org/icon-slug: kong
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - gateway
+    - kong
+    - standalone
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: Service cible
+      required: [existingComponentRef]
+      properties:
+        existingComponentRef:
+          title: Component Backstage
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Component
+          ui:help: 'Service existant à exposer via Kong. Doit déjà être déployé avec un upstream accessible.'
+
+    - title: Configuration Kong
+      properties:
+        routePath:
+          title: Route path
+          type: string
+          ui:help: 'Défaut : /api/{service-name}. Ex: /api/quote-pricing'
+        upstreamUrl:
+          title: Upstream URL
+          type: string
+          ui:help: 'URL du service en amont. Défaut : http://{service-name}:8080'
+        localDev:
+          title: Mode développement local
+          type: boolean
+          default: false
+          ui:help: 'Le service tourne sur la machine hôte (host.docker.internal:8080). Ne pas activer en production.'
+
+  steps:
+    - id: register-kong
+      name: Register on Kong API Gateway
+      action: cma:kong:register-service
+      input:
+        serviceName: ${{ parameters.existingComponentRef | replace("component:default/", "") | replace("component:", "") }}
+        routePath: ${{ parameters.routePath or '/api/' + (parameters.existingComponentRef | replace("component:default/", "") | replace("component:", "")) }}
+        upstreamUrl: ${{ parameters.upstreamUrl }}
+        localDev: ${{ parameters.localDev }}
+
+  output:
+    text:
+      - title: Kong enregistré
+        content: |
+          Service **${{ parameters.existingComponentRef | replace("component:default/", "") | replace("component:", "") }}** enregistré sur Kong.
+
+          - Route proxy : `http://localhost:8000${{ steps['register-kong'].output.kongRoutePath }}`
+          - Groupe ACL : `${{ steps['register-kong'].output.kongAclGroup }}`
+
+          Pour obtenir un accès : **Catalog → Subscriptions → Request access** ou contacter la Platform team.

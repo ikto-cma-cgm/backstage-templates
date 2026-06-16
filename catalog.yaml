@@ -6,11 +6,14 @@ metadata:
   description: Software Templates (Golden Paths) CMA CGM — dev container
 spec:
   targets:
-    # Unitaires
+    # Unitaires applicatifs
     - ./node-template/template.yaml
     - ./springboot-template/template.yaml
     - ./springboot-liquibase-template/template.yaml
-    # API-first
+    # Unitaires gateway & auth
+    - ./kong-service-template/template.yaml
+    - ./ping-federate-service-template/template.yaml
+    # API-first (composition Kong + Ping)
     - ./api-contract-template/template.yaml
     - ./api-springboot-impl-template/template.yaml
     # Composites

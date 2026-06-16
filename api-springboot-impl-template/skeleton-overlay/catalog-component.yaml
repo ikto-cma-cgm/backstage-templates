@@ -1,26 +1,4 @@
 apiVersion: backstage.io/v1alpha1
-kind: API
-metadata:
-  name: ${{ values.name }}
-  description: ${{ values.description }}
-  tags:
-    - openapi
-  links:
-    - url: https://github.com/${{ values.repoOwner }}/${{ values.name }}
-      title: Repository
-      icon: github
-  annotations:
-    backstage.io/techdocs-ref: dir:.
-spec:
-  type: openapi
-  lifecycle: experimental
-  owner: ${{ values.owner }}
-  system: ${{ values.system }}
-  domain: ${{ values.domain }}
-  definition:
-    $text: ./openapi.yaml
----
-apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: ${{ values.name }}

@@ -1,0 +1,79 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: ping-federate-service-template
+  title: Register API on Ping Federate
+  description: Crée un client OAuth2 sur Ping Federate pour une API existante — active les grant types et configure les scopes.
+  annotations:
+    simpleicons.org/icon-slug: pingidentity
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - oauth2
+    - ping-federate
+    - standalone
+spec:
+  type: service
+  owner: group:default/it-development-software-engineering-developer-platform
+  parameters:
+    - title: API cible
+      required: [existingApiRef]
+      properties:
+        existingApiRef:
+          title: API Backstage
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: API
+                spec.type: openapi
+          ui:help: "API existante dans le Catalog à enregistrer sur Ping Federate."
+
+    - title: Configuration OAuth2
+      properties:
+        grantTypes:
+          title: Grant types OAuth2
+          type: array
+          items:
+            type: string
+            enum:
+              - client_credentials
+              - authorization_code
+          uniqueItems: true
+          default:
+            - client_credentials
+          ui:widget: checkboxes
+          ui:help: 'client_credentials = M2M (service-to-service). authorization_code = flux utilisateur.'
+        scopes:
+          title: Scopes OAuth2
+          type: string
+          ui:help: 'Scopes autorisés pour ce client, séparés par des virgules. Ex: my-api:read,my-api:write'
+        redirectUris:
+          title: Redirect URIs
+          type: string
+          ui:help: 'URIs de redirection (authorization_code uniquement). Séparées par des virgules. Ex: https://my-app.cma-cgm.com/callback'
+
+  steps:
+    - id: register-ping
+      name: Register OAuth2 client on Ping Federate
+      action: cma:ping:register-client
+      input:
+        clientId: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+        clientName: ${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}
+        grantTypes: ${{ parameters.grantTypes }}
+        scopes: ${{ parameters.scopes and parameters.scopes.split(',') or [] }}
+        redirectUris: ${{ parameters.redirectUris and parameters.redirectUris.split(',') or [] }}
+
+  output:
+    text:
+      - title: Ping Federate — Client enregistré
+        content: |
+          Client OAuth2 **${{ steps['register-ping'].output.clientId }}** créé sur Ping Federate.
+
+          **Endpoints :**
+          - Token : `${{ steps['register-ping'].output.tokenEndpoint }}`
+          - JWKS : `${{ steps['register-ping'].output.jwksUri }}`
+
+          **Prochaines étapes :**
+          1. Récupérer le `client_secret` depuis l'UI Ping Federate / Keycloak
+          2. Stocker les credentials dans votre gestionnaire de secrets (Vault / AWS Secrets Manager)
+          3. Configurer votre service consommateur avec ces credentials

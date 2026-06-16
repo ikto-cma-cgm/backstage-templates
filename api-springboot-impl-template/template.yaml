@@ -147,6 +147,14 @@ spec:
         files:
           - src/main/java/com/example/service/Application.java
 
+    - id: register-component
+      name: Register Component in catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: https://github.com/${{ parameters.repoOwner }}/${{ parameters.existingApiRef | replace("api:default/", "") | replace("api:", "") }}/tree/main
+        catalogInfoPath: /catalog-component.yaml
+        optional: true
+
     - id: open-pr
       name: Open Pull Request with implementation
       action: publish:github:pull-request
@@ -160,7 +168,7 @@ spec:
           **What's included:**
           - Spring Boot ${{ parameters.springBootVersion }} with OpenAPI Generator
           - Server stubs generated from `openapi.yaml` at repo root (`mvn install`)
-          - Updated `catalog-info.yaml` — adds `kind: Component` alongside existing `kind: API`
+          - `catalog-component.yaml` — entité `kind: Component` enregistrée dans Backstage (sans toucher au `catalog-info.yaml` existant)
 
           **Next steps after merge:**
           1. `mvn install` — génère les stubs
