@@ -6,8 +6,8 @@ metadata:
   annotations:
     kong.io/service-name: shipping-quote-api
     kong.io/route-path: /api/shipping-quote-api
-    hip.io/access-scopes: shipping-quote-api:read,shipping-quote-api:write
-    hip.io/auto-approve-scopes: shipping-quote-api:read
+    hip.io/access-scopes: read,write
+    hip.io/auto-approve-scopes: read
 spec:
   type: openapi
   lifecycle: experimental

@@ -124,8 +124,8 @@ spec:
           gitlabHost: ${{ parameters.gitlabHost }}
           exposeViaKong: ${{ parameters.exposeViaKong }}
           kongRoutePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
-          accessScopes: ${{ parameters.name + ':read,' + parameters.name + ':write' }}
-          autoApproveScopes: ${{ parameters.name + ':read' }}
+          accessScopes: read,write
+          autoApproveScopes: read
 
     # ── Repository ────────────────────────────────────────────────────────────
     - id: publish-github
