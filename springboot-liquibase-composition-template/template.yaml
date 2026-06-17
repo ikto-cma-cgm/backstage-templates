@@ -231,10 +231,31 @@ spec:
         defaultBranch: main
         description: ${{ parameters.description }}
 
+    - id: register-catalog-github
+      name: Register in catalog (GitHub)
+      if: ${{ parameters.repoProvider === 'github' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-github'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+        optional: true
+
+    - id: register-catalog-gitlab
+      name: Register in catalog (GitLab)
+      if: ${{ parameters.repoProvider === 'gitlab' }}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-gitlab'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+        optional: true
+
   output:
     links:
       - title: Repository
         url: ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        url: ${{ steps['register-catalog-github'].output.entityRef || steps['register-catalog-gitlab'].output.entityRef }}
     text:
       - title: Next Steps
         content: |
