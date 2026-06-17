@@ -75,6 +75,11 @@ spec:
           title: Route path (optionnel)
           type: string
           ui:help: 'Défaut : /api/{name}'
+        localDev:
+          title: Mode développement local
+          type: boolean
+          default: false
+          ui:help: "Le service tourne sur la machine hôte — upstream configuré sur host.docker.internal:8080. Ne pas activer en production."
 
     - title: Repository
       required: [repoProvider, repoOwner]
@@ -153,6 +158,7 @@ spec:
       input:
         serviceName: ${{ parameters.name }}
         routePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
+        localDev: ${{ parameters.localDev }}
 
     # ── Catalog ───────────────────────────────────────────────────────────────
     - id: register-catalog-github
