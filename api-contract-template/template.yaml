@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: api-contract-template
   title: API Contract
-  description: Crée le repo OpenAPI 3.0, enregistre l'API dans le Catalog, l'expose sur Kong et enregistre le client OAuth2 sur Ping Federate (optionnels).
+  description: Crée le repo OpenAPI 3.0, enregistre l'API dans le Catalog et l'expose sur Kong (optionnel).
   annotations:
     simpleicons.org/icon-slug: swagger
     backstage.io/techdocs-ref: dir:.
@@ -70,40 +70,11 @@ spec:
           title: Exposer via Kong API Gateway
           type: boolean
           default: false
-          ui:help: "Crée la route Kong et protège l'API par défaut. L'upstream est un placeholder — à mettre à jour après le déploiement via le template « Register Service on Kong »."
+          ui:help: "Crée la route Kong et protège l'API par key-auth. Les scopes read/write sont configurés automatiquement."
         kongRoutePath:
           title: Route path (optionnel)
           type: string
           ui:help: 'Défaut : /api/{name}'
-
-    - title: Ping Federate — OAuth2
-      properties:
-        registerOnPing:
-          title: Enregistrer sur Ping Federate
-          type: boolean
-          default: false
-          ui:help: "Crée le client OAuth2 sur Ping Federate (Keycloak en dev). Requis pour les API exposées à des consommateurs M2M ou utilisateur."
-        pingGrantTypes:
-          title: Grant types OAuth2
-          type: array
-          items:
-            type: string
-            enum:
-              - client_credentials
-              - authorization_code
-          uniqueItems: true
-          default:
-            - client_credentials
-          ui:widget: checkboxes
-          ui:help: 'client_credentials = M2M. authorization_code = flux utilisateur.'
-        pingScopes:
-          title: Scopes OAuth2 (optionnel)
-          type: string
-          ui:help: 'Séparés par des virgules. Défaut : {name}:read,{name}:write'
-        pingRedirectUris:
-          title: Redirect URIs (optionnel)
-          type: string
-          ui:help: 'authorization_code uniquement. Ex: https://my-app.cma-cgm.com/callback'
 
     - title: Repository
       required: [repoProvider, repoOwner]
@@ -153,6 +124,8 @@ spec:
           gitlabHost: ${{ parameters.gitlabHost }}
           exposeViaKong: ${{ parameters.exposeViaKong }}
           kongRoutePath: ${{ parameters.kongRoutePath or '/api/' + parameters.name }}
+          accessScopes: ${{ parameters.name + ':read,' + parameters.name + ':write' }}
+          autoApproveScopes: ${{ parameters.name + ':read' }}
 
     # ── Repository ────────────────────────────────────────────────────────────
     - id: publish-github
@@ -172,19 +145,7 @@ spec:
         defaultBranch: main
         description: ${{ parameters.description }}
 
-    # ── Ping Federate (unitaire) — définit l'auth avant d'exposer le gateway ──
-    - id: register-ping
-      name: Register OAuth2 client on Ping Federate
-      if: ${{ parameters.registerOnPing }}
-      action: cma:ping:register-client
-      input:
-        clientId: ${{ parameters.name }}
-        clientName: ${{ parameters.description }}
-        grantTypes: ${{ parameters.pingGrantTypes or ['client_credentials'] }}
-        scopes: ${{ parameters.pingScopes and parameters.pingScopes.split(',') or [parameters.name + ':read', parameters.name + ':write'] }}
-        redirectUris: ${{ parameters.pingRedirectUris and parameters.pingRedirectUris.split(',') or [] }}
-
-    # ── Kong (unitaire) — expose l'API en appliquant les contraintes d'auth ──
+    # ── Kong — expose l'API avec scopes read/write ────────────────────────────
     - id: register-kong
       name: Register on Kong API Gateway
       if: ${{ parameters.exposeViaKong }}
@@ -227,5 +188,4 @@ spec:
           1. Clone : `git clone ${{ steps['publish-github'].output.remoteUrl || steps['publish-gitlab'].output.remoteUrl }}`
           2. Éditez `openapi.yaml` pour définir votre contrat API
           3. Pour générer le service Spring Boot : template **Implement API — Spring Boot** → sélectionnez `${{ parameters.name }}`
-          ${{ parameters.exposeViaKong and '4. Route Kong active : `' + (parameters.kongRoutePath or '/api/' + parameters.name) + '` — protégée par key-auth. Mettre à jour l''upstream après déploiement via « Register Service on Kong ».' or '' }}
-          ${{ parameters.registerOnPing and '5. Client Ping Federate créé — Token endpoint : `' + steps['register-ping'].output.tokenEndpoint + '`' or '' }}
+          ${{ parameters.exposeViaKong and '4. Route Kong active : `' + (parameters.kongRoutePath or '/api/' + parameters.name) + '` — scopes `' + parameters.name + ':read` (auto-approve) et `' + parameters.name + ':write` (approbation owner).' or '' }}

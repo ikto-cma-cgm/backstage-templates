@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: shipping-quote-api
+  description: API de test pour valider le flux Kong Access (souscription, auto-approve, révocation)
+  annotations:
+    kong.io/service-name: shipping-quote-api
+    kong.io/route-path: /api/shipping-quote-api
+    hip.io/access-scopes: shipping-quote-api:read,shipping-quote-api:write
+    hip.io/auto-approve-scopes: shipping-quote-api:read
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: group:default/it-development-software-engineering-developer-platform
+  system: shipping
+  domain: shipping
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Shipping Quote API (test)
+      version: "1.0.0"
+    paths: {}

@@ -60,6 +60,6 @@ spec:
           Service **${{ parameters.existingComponentRef | replace("component:default/", "") | replace("component:", "") }}** enregistré sur Kong.
 
           - Route proxy : `http://localhost:8000${{ steps['register-kong'].output.kongRoutePath }}`
-          - Groupe ACL : `${{ steps['register-kong'].output.kongAclGroup }}`
+          - Groupes ACL : `${{ steps['register-kong'].output.kongAclGroups }}`
 
           Pour obtenir un accès : **Catalog → Subscriptions → Request access** ou contacter la Platform team.

@@ -10,10 +10,9 @@ spec:
     - ./node-template/template.yaml
     - ./springboot-template/template.yaml
     - ./springboot-liquibase-template/template.yaml
-    # Unitaires gateway & auth
+    # Unitaires gateway
     - ./kong-service-template/template.yaml
-    - ./ping-federate-service-template/template.yaml
-    # API-first (composition Kong + Ping)
+    # API-first
     - ./api-contract-template/template.yaml
     - ./api-springboot-impl-template/template.yaml
     # Composites
